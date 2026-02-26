@@ -100,15 +100,15 @@ export const logger: Logger = gcpLog
     })()
   : {
       debug: (...args: unknown[]): void => {
-        console.log(consoleLine("🐞", args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a)));
+        console.log(consoleLine("🐞 ", args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a)));
       },
-      info:      (...args: unknown[]): void => { console.log(consoleLine("ℹ️",  args)); },
-      notice:    (...args: unknown[]): void => { console.log(consoleLine("*️⃣",  args)); },
-      warning:   (...args: unknown[]): void => { console.log(consoleLine("⚠️",  args)); },
-      error:     (...args: unknown[]): void => { console.log(consoleLine("⛔️",  args)); },
-      critical:  (...args: unknown[]): void => { console.log(consoleLine("❗️",  args)); },
-      alert:     (...args: unknown[]): void => { console.log(consoleLine("‼️",  args)); },
-      emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨",  args)); },
+      info:      (...args: unknown[]): void => { console.log(consoleLine("ℹ️  ", args)); },
+      notice:    (...args: unknown[]): void => { console.log(consoleLine("*️⃣  ", args)); },
+      warning:   (...args: unknown[]): void => { console.log(consoleLine("⚠️  ", args)); },
+      error:     (...args: unknown[]): void => { console.log(consoleLine("⛔️ ", args)); },
+      critical:  (...args: unknown[]): void => { console.log(consoleLine("❗️ ", args)); },
+      alert:     (...args: unknown[]): void => { console.log(consoleLine("‼️  ", args)); },
+      emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨 ", args)); },
     };
 
 export default logger;

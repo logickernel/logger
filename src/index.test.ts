@@ -41,7 +41,8 @@ describe("logger (console backend)", () => {
 
   // Timestamp pattern: "YYYY-MM-DD HH:MM:SS.mmm"
   const ts = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
-  const line = (emoji: string, msg: string) => expect.stringMatching(new RegExp(`^${emoji} ${ts.source} ${msg}$`));
+  const line = (emoji: string, msg: string) =>
+    expect.stringMatching(new RegExp(`^${emoji}\\s+${ts.source} ${msg}$`));
 
   it("debug logs with 🐞 and timestamp", () => {
     logger.debug("verbose");
