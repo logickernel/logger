@@ -22,6 +22,22 @@ export function formatMessage(args: unknown[]): string {
 const USE_GCP = process.env.SYSTEM_LOGS === "gcp" || !!process.env.K_SERVICE;
 const noop = (): void => {};
 
+// If the last arg is a plain object, return a jsonPayload so Cloud Logging
+// indexes its fields. Otherwise return a plain string (textPayload).
+function gcpPayload(args: unknown[]): string | Record<string, unknown> {
+  const last = args[args.length - 1];
+  if (
+    args.length >= 2 &&
+    last !== null &&
+    typeof last === "object" &&
+    !Array.isArray(last) &&
+    !(last instanceof Error)
+  ) {
+    return { message: formatMessage(args.slice(0, -1)), ...(last as Record<string, unknown>) };
+  }
+  return formatMessage(args);
+}
+
 let gcpLog: ReturnType<Logging["log"]> | null = null;
 if (USE_GCP) {
   try {
@@ -37,14 +53,14 @@ export const logger: Logger = gcpLog
       const g = gcpLog!;
       return {
         debug: (...args: unknown[]): void => {
-          const msg = formatMessage(args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a));
-          g.write(g.entry({ severity: "DEBUG" }, msg)).catch(noop);
+          const mapped = args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a);
+          g.write(g.entry({ severity: "DEBUG" }, gcpPayload(mapped))).catch(noop);
         },
         info: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "INFO" }, formatMessage(args))).catch(noop);
+          g.write(g.entry({ severity: "INFO" }, gcpPayload(args))).catch(noop);
         },
         error: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "ERROR" }, formatMessage(args))).catch(noop);
+          g.write(g.entry({ severity: "ERROR" }, gcpPayload(args))).catch(noop);
         },
       };
     })()

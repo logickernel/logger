@@ -58,4 +58,19 @@ describe("logger (console backend)", () => {
     logger.debug("line1\nline2");
     expect(console.log).toHaveBeenCalledWith("[DEBUG]", "line1 line2");
   });
+
+  it("debug passes trailing context object through", () => {
+    logger.debug("user logged in", { userId: "123", action: "login" });
+    expect(console.log).toHaveBeenCalledWith("[DEBUG]", "user logged in", { userId: "123", action: "login" });
+  });
+
+  it("info passes trailing context object through", () => {
+    logger.info("request handled", { method: "GET", status: 200 });
+    expect(console.log).toHaveBeenCalledWith("[INFO]", "request handled", { method: "GET", status: 200 });
+  });
+
+  it("error passes trailing context object through", () => {
+    logger.error("request failed", { method: "POST", status: 500 });
+    expect(console.log).toHaveBeenCalledWith("[ERROR]", "request failed", { method: "POST", status: 500 });
+  });
 });
