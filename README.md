@@ -32,7 +32,7 @@ logger.warning("disk space low", { used: "92%", mount: "/data" });
 
 ---
 
-## 2. Installation & Usage (as a Library)
+## 2. Installation & Usage
 
 ### Install from npm
 
@@ -60,9 +60,7 @@ logger.critical("primary db unreachable", { host: "db-1", retries: 3 });
 
 The default export is a **singleton** whose backend is chosen at module load:
 
-- **GCP backend** is used when:
-  - `SYSTEM_LOGS=gcp`, or
-  - `K_SERVICE` is set (e.g. Cloud Run)
+- **GCP backend** is used when `GCP_PROJECT` is set.
 - Otherwise, the **console backend** is used.
 
 ### Severity methods
@@ -99,14 +97,11 @@ logger.info("request complete", { method: "GET", path: "/api/users", status: 200
 
 ### Environment variables
 
-- `SYSTEM_LOGS=gcp`
-  Force GCP logging even if `K_SERVICE` is not set.
+- `GCP_PROJECT`
+  Project ID for Google Cloud Logging. When set, the GCP backend is used.
 
 - `K_SERVICE`
   Used as the log name in Google Cloud Logging. If not set, `"app"` is used.
-
-- `GCP_PROJECT`
-  Project ID for Google Cloud Logging. Required when using the GCP backend.
 
 ### Named exports
 

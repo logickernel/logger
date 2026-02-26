@@ -10,14 +10,11 @@ describe("GCP backend integration", () => {
   const originalEnv: Record<string, string | undefined> = {};
 
   beforeAll(() => {
-    originalEnv.SYSTEM_LOGS = process.env.SYSTEM_LOGS;
     originalEnv.GCP_PROJECT = process.env.GCP_PROJECT;
-    process.env.SYSTEM_LOGS = "gcp";
     process.env.GCP_PROJECT = PROJECT;
   });
 
   afterAll(() => {
-    process.env.SYSTEM_LOGS = originalEnv.SYSTEM_LOGS;
     process.env.GCP_PROJECT = originalEnv.GCP_PROJECT;
   });
 

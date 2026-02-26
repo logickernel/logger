@@ -24,7 +24,7 @@ export function formatMessage(args: unknown[]): string {
 }
 
 // Resolved once at module load — no per-call branching.
-const USE_GCP = process.env.SYSTEM_LOGS === "gcp" || !!process.env.K_SERVICE;
+const USE_GCP = !!process.env.GCP_PROJECT;
 const noop = (): void => {};
 
 // Formats a single console log line: "{emoji} {local timestamp} {message} [{payload}]"
