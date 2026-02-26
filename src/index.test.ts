@@ -88,24 +88,24 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("🐞", "line1 line2"));
   });
 
-  it("debug inlines trailing context object as compact JSON", () => {
+  it("debug inlines trailing context object as spaced JSON", () => {
     logger.debug("user logged in", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('user logged in {"userId":"123","action":"login"}')
+      expect.stringContaining('user logged in { "userId": "123", "action": "login" }')
     );
   });
 
-  it("info inlines trailing context object as compact JSON", () => {
+  it("info inlines trailing context object as spaced JSON", () => {
     logger.info("request handled", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request handled {"method":"GET","status":200}')
+      expect.stringContaining('request handled { "method": "GET", "status": 200 }')
     );
   });
 
-  it("error inlines trailing context object as compact JSON", () => {
+  it("error inlines trailing context object as spaced JSON", () => {
     logger.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request failed {"method":"POST","status":500}')
+      expect.stringContaining('request failed { "method": "POST", "status": 500 }')
     );
   });
 });

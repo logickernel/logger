@@ -34,7 +34,7 @@ function consoleLine(emoji: string, args: unknown[]): string {
   const last = args[args.length - 1];
   const hasPayload = args.length >= 2 && last !== null && typeof last === "object" && !Array.isArray(last) && !(last instanceof Error);
   const msg = formatMessage(hasPayload ? args.slice(0, -1) : args);
-  const suffix = hasPayload ? " " + JSON.stringify(last) : "";
+  const suffix = hasPayload ? " " + JSON.stringify(last, null, 2).replace(/\n\s*/g, " ") : "";
   return `${emoji} ${ts} ${msg}${suffix}`;
 }
 

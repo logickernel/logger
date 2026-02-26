@@ -116,8 +116,8 @@ logger.info("request complete", { method: "GET", path: "/api/users", status: 200
 ### Console format
 
 ```
-🐞 2026-02-26 13:04:22.341 user action {"userId":"123","action":"login"}
-⚠️ 2026-02-26 13:04:22.512 disk space low {"used":"92%","mount":"/data"}
+🐞 2026-02-26 13:04:22.341 user action { "userId": "123", "action": "login" }
+⚠️ 2026-02-26 13:04:22.512 disk space low { "used": "92%", "mount": "/data" }
 ```
 
 ### Environment variables
