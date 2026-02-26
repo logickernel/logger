@@ -39,63 +39,63 @@ describe("logger (console backend)", () => {
     }
   });
 
-  it("info writes [INFO] prefix", () => {
-    logger.info("hello");
-    expect(console.log).toHaveBeenCalledWith("[INFO]", "hello");
-  });
-
-  it("error writes [ERROR] prefix", () => {
-    logger.error("something broke");
-    expect(console.log).toHaveBeenCalledWith("[ERROR]", "something broke");
-  });
-
-  it("debug writes [DEBUG] prefix in dev", () => {
+  it("debug logs with 🐞", () => {
     logger.debug("verbose");
-    expect(console.log).toHaveBeenCalledWith("[DEBUG]", "verbose");
+    expect(console.log).toHaveBeenCalledWith("🐞", "verbose");
+  });
+
+  it("info logs with ℹ️", () => {
+    logger.info("hello");
+    expect(console.log).toHaveBeenCalledWith("ℹ️", "hello");
+  });
+
+  it("notice logs with *️⃣", () => {
+    logger.notice("normal but significant");
+    expect(console.log).toHaveBeenCalledWith("*️⃣", "normal but significant");
+  });
+
+  it("warning logs with ⚠️", () => {
+    logger.warning("disk space low");
+    expect(console.log).toHaveBeenCalledWith("⚠️", "disk space low");
+  });
+
+  it("error logs with ⛔️", () => {
+    logger.error("something broke");
+    expect(console.log).toHaveBeenCalledWith("⛔️", "something broke");
+  });
+
+  it("critical logs with ‼️", () => {
+    logger.critical("primary db down");
+    expect(console.log).toHaveBeenCalledWith("‼️", "primary db down");
+  });
+
+  it("alert logs with 🚨", () => {
+    logger.alert("data loss imminent");
+    expect(console.log).toHaveBeenCalledWith("🚨", "data loss imminent");
+  });
+
+  it("emergency logs with 🆘", () => {
+    logger.emergency("system unusable");
+    expect(console.log).toHaveBeenCalledWith("🆘", "system unusable");
   });
 
   it("debug replaces newlines in string args", () => {
     logger.debug("line1\nline2");
-    expect(console.log).toHaveBeenCalledWith("[DEBUG]", "line1 line2");
+    expect(console.log).toHaveBeenCalledWith("🐞", "line1 line2");
   });
 
   it("debug passes trailing context object through", () => {
     logger.debug("user logged in", { userId: "123", action: "login" });
-    expect(console.log).toHaveBeenCalledWith("[DEBUG]", "user logged in", { userId: "123", action: "login" });
+    expect(console.log).toHaveBeenCalledWith("🐞", "user logged in", { userId: "123", action: "login" });
   });
 
   it("info passes trailing context object through", () => {
     logger.info("request handled", { method: "GET", status: 200 });
-    expect(console.log).toHaveBeenCalledWith("[INFO]", "request handled", { method: "GET", status: 200 });
+    expect(console.log).toHaveBeenCalledWith("ℹ️", "request handled", { method: "GET", status: 200 });
   });
 
   it("error passes trailing context object through", () => {
     logger.error("request failed", { method: "POST", status: 500 });
-    expect(console.log).toHaveBeenCalledWith("[ERROR]", "request failed", { method: "POST", status: 500 });
-  });
-
-  it("notice writes [NOTICE] prefix", () => {
-    logger.notice("normal but significant");
-    expect(console.log).toHaveBeenCalledWith("[NOTICE]", "normal but significant");
-  });
-
-  it("warning writes [WARNING] prefix", () => {
-    logger.warning("disk space low");
-    expect(console.log).toHaveBeenCalledWith("[WARNING]", "disk space low");
-  });
-
-  it("critical writes [CRITICAL] prefix", () => {
-    logger.critical("primary db down");
-    expect(console.log).toHaveBeenCalledWith("[CRITICAL]", "primary db down");
-  });
-
-  it("alert writes [ALERT] prefix", () => {
-    logger.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith("[ALERT]", "data loss imminent");
-  });
-
-  it("emergency writes [EMERGENCY] prefix", () => {
-    logger.emergency("system unusable");
-    expect(console.log).toHaveBeenCalledWith("[EMERGENCY]", "system unusable");
+    expect(console.log).toHaveBeenCalledWith("⛔️", "request failed", { method: "POST", status: 500 });
   });
 });

@@ -86,28 +86,28 @@ export const logger: Logger = gcpLog
     })()
   : {
       debug: (...args: unknown[]): void => {
-        console.log("[DEBUG]", ...args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a));
+        console.log("🐞", ...args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a));
       },
       info: (...args: unknown[]): void => {
-        console.log("[INFO]", ...args);
+        console.log("ℹ️", ...args);
       },
       notice: (...args: unknown[]): void => {
-        console.log("[NOTICE]", ...args);
+        console.log("*️⃣", ...args);
       },
       warning: (...args: unknown[]): void => {
-        console.log("[WARNING]", ...args);
+        console.log("⚠️", ...args);
       },
       error: (...args: unknown[]): void => {
-        console.log("[ERROR]", ...args);
+        console.log("⛔️", ...args);
       },
       critical: (...args: unknown[]): void => {
-        console.log("[CRITICAL]", ...args);
+        console.log("‼️", ...args);
       },
       alert: (...args: unknown[]): void => {
-        console.log("[ALERT]", ...args);
+        console.log("🚨", ...args);
       },
       emergency: (...args: unknown[]): void => {
-        console.log("[EMERGENCY]", ...args);
+        console.log("🆘", ...args);
       },
     };
 
