@@ -51,6 +51,61 @@ describe("GCP backend integration", () => {
     const entry = await pollForEntry(testId, "DEBUG");
     expect(entry).toBeDefined();
   }, 30_000);
+
+  it("writes NOTICE entry to Cloud Logging", async () => {
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `integration-${Date.now()}`;
+    logger.notice(`notice test ${testId}`);
+
+    const entry = await pollForEntry(testId, "NOTICE");
+    expect(entry).toBeDefined();
+  }, 30_000);
+
+  it("writes WARNING entry to Cloud Logging", async () => {
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `integration-${Date.now()}`;
+    logger.warning(`warning test ${testId}`);
+
+    const entry = await pollForEntry(testId, "WARNING");
+    expect(entry).toBeDefined();
+  }, 30_000);
+
+  it("writes CRITICAL entry to Cloud Logging", async () => {
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `integration-${Date.now()}`;
+    logger.critical(`critical test ${testId}`);
+
+    const entry = await pollForEntry(testId, "CRITICAL");
+    expect(entry).toBeDefined();
+  }, 30_000);
+
+  it("writes ALERT entry to Cloud Logging", async () => {
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `integration-${Date.now()}`;
+    logger.alert(`alert test ${testId}`);
+
+    const entry = await pollForEntry(testId, "ALERT");
+    expect(entry).toBeDefined();
+  }, 30_000);
+
+  it("writes EMERGENCY entry to Cloud Logging", async () => {
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `integration-${Date.now()}`;
+    logger.emergency(`emergency test ${testId}`);
+
+    const entry = await pollForEntry(testId, "EMERGENCY");
+    expect(entry).toBeDefined();
+  }, 30_000);
 });
 
 async function pollForEntry(

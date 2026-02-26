@@ -33,10 +33,10 @@ describe("logger (console backend)", () => {
     vi.restoreAllMocks();
   });
 
-  it("has debug, info, error functions", () => {
-    expect(typeof logger.debug).toBe("function");
-    expect(typeof logger.info).toBe("function");
-    expect(typeof logger.error).toBe("function");
+  it("has all severity functions", () => {
+    for (const method of ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"]) {
+      expect(typeof logger[method as keyof typeof logger]).toBe("function");
+    }
   });
 
   it("info writes [INFO] prefix", () => {
@@ -72,5 +72,30 @@ describe("logger (console backend)", () => {
   it("error passes trailing context object through", () => {
     logger.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith("[ERROR]", "request failed", { method: "POST", status: 500 });
+  });
+
+  it("notice writes [NOTICE] prefix", () => {
+    logger.notice("normal but significant");
+    expect(console.log).toHaveBeenCalledWith("[NOTICE]", "normal but significant");
+  });
+
+  it("warning writes [WARNING] prefix", () => {
+    logger.warning("disk space low");
+    expect(console.log).toHaveBeenCalledWith("[WARNING]", "disk space low");
+  });
+
+  it("critical writes [CRITICAL] prefix", () => {
+    logger.critical("primary db down");
+    expect(console.log).toHaveBeenCalledWith("[CRITICAL]", "primary db down");
+  });
+
+  it("alert writes [ALERT] prefix", () => {
+    logger.alert("data loss imminent");
+    expect(console.log).toHaveBeenCalledWith("[ALERT]", "data loss imminent");
+  });
+
+  it("emergency writes [EMERGENCY] prefix", () => {
+    logger.emergency("system unusable");
+    expect(console.log).toHaveBeenCalledWith("[EMERGENCY]", "system unusable");
   });
 });

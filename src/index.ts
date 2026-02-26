@@ -3,7 +3,12 @@ import { Logging } from "@google-cloud/logging";
 export interface Logger {
   debug: (...args: unknown[]) => void;
   info: (...args: unknown[]) => void;
+  notice: (...args: unknown[]) => void;
+  warning: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
+  critical: (...args: unknown[]) => void;
+  alert: (...args: unknown[]) => void;
+  emergency: (...args: unknown[]) => void;
 }
 
 export function formatMessage(args: unknown[]): string {
@@ -59,8 +64,23 @@ export const logger: Logger = gcpLog
         info: (...args: unknown[]): void => {
           g.write(g.entry({ severity: "INFO" }, gcpPayload(args))).catch(noop);
         },
+        notice: (...args: unknown[]): void => {
+          g.write(g.entry({ severity: "NOTICE" }, gcpPayload(args))).catch(noop);
+        },
+        warning: (...args: unknown[]): void => {
+          g.write(g.entry({ severity: "WARNING" }, gcpPayload(args))).catch(noop);
+        },
         error: (...args: unknown[]): void => {
           g.write(g.entry({ severity: "ERROR" }, gcpPayload(args))).catch(noop);
+        },
+        critical: (...args: unknown[]): void => {
+          g.write(g.entry({ severity: "CRITICAL" }, gcpPayload(args))).catch(noop);
+        },
+        alert: (...args: unknown[]): void => {
+          g.write(g.entry({ severity: "ALERT" }, gcpPayload(args))).catch(noop);
+        },
+        emergency: (...args: unknown[]): void => {
+          g.write(g.entry({ severity: "EMERGENCY" }, gcpPayload(args))).catch(noop);
         },
       };
     })()
@@ -71,8 +91,23 @@ export const logger: Logger = gcpLog
       info: (...args: unknown[]): void => {
         console.log("[INFO]", ...args);
       },
+      notice: (...args: unknown[]): void => {
+        console.log("[NOTICE]", ...args);
+      },
+      warning: (...args: unknown[]): void => {
+        console.log("[WARNING]", ...args);
+      },
       error: (...args: unknown[]): void => {
         console.log("[ERROR]", ...args);
+      },
+      critical: (...args: unknown[]): void => {
+        console.log("[CRITICAL]", ...args);
+      },
+      alert: (...args: unknown[]): void => {
+        console.log("[ALERT]", ...args);
+      },
+      emergency: (...args: unknown[]): void => {
+        console.log("[EMERGENCY]", ...args);
       },
     };
 
