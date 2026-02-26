@@ -39,63 +39,73 @@ describe("logger (console backend)", () => {
     }
   });
 
-  it("debug logs with 🐞", () => {
+  // Timestamp pattern: "YYYY-MM-DD HH:MM:SS.mmm"
+  const ts = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
+  const line = (emoji: string, msg: string) => expect.stringMatching(new RegExp(`^${emoji} ${ts.source} ${msg}$`));
+
+  it("debug logs with 🐞 and timestamp", () => {
     logger.debug("verbose");
-    expect(console.log).toHaveBeenCalledWith("🐞", "verbose");
+    expect(console.log).toHaveBeenCalledWith(line("🐞", "verbose"));
   });
 
-  it("info logs with ℹ️", () => {
+  it("info logs with ℹ️ and timestamp", () => {
     logger.info("hello");
-    expect(console.log).toHaveBeenCalledWith("ℹ️", "hello");
+    expect(console.log).toHaveBeenCalledWith(line("ℹ️", "hello"));
   });
 
-  it("notice logs with *️⃣", () => {
+  it("notice logs with *️⃣ and timestamp", () => {
     logger.notice("normal but significant");
-    expect(console.log).toHaveBeenCalledWith("*️⃣", "normal but significant");
+    expect(console.log).toHaveBeenCalledWith(line("\\*️⃣", "normal but significant"));
   });
 
-  it("warning logs with ⚠️", () => {
+  it("warning logs with ⚠️ and timestamp", () => {
     logger.warning("disk space low");
-    expect(console.log).toHaveBeenCalledWith("⚠️", "disk space low");
+    expect(console.log).toHaveBeenCalledWith(line("⚠️", "disk space low"));
   });
 
-  it("error logs with ⛔️", () => {
+  it("error logs with ⛔️ and timestamp", () => {
     logger.error("something broke");
-    expect(console.log).toHaveBeenCalledWith("⛔️", "something broke");
+    expect(console.log).toHaveBeenCalledWith(line("⛔️", "something broke"));
   });
 
-  it("critical logs with ❗️", () => {
+  it("critical logs with ❗️ and timestamp", () => {
     logger.critical("primary db down");
-    expect(console.log).toHaveBeenCalledWith("❗️", "primary db down");
+    expect(console.log).toHaveBeenCalledWith(line("❗️", "primary db down"));
   });
 
-  it("alert logs with ‼️", () => {
+  it("alert logs with ‼️ and timestamp", () => {
     logger.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith("‼️", "data loss imminent");
+    expect(console.log).toHaveBeenCalledWith(line("‼️", "data loss imminent"));
   });
 
-  it("emergency logs with 🚨", () => {
+  it("emergency logs with 🚨 and timestamp", () => {
     logger.emergency("system unusable");
-    expect(console.log).toHaveBeenCalledWith("🚨", "system unusable");
+    expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable"));
   });
 
   it("debug replaces newlines in string args", () => {
     logger.debug("line1\nline2");
-    expect(console.log).toHaveBeenCalledWith("🐞", "line1 line2");
+    expect(console.log).toHaveBeenCalledWith(line("🐞", "line1 line2"));
   });
 
-  it("debug passes trailing context object through", () => {
+  it("debug inlines trailing context object as compact JSON", () => {
     logger.debug("user logged in", { userId: "123", action: "login" });
-    expect(console.log).toHaveBeenCalledWith("🐞", "user logged in", { userId: "123", action: "login" });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('user logged in {"userId":"123","action":"login"}')
+    );
   });
 
-  it("info passes trailing context object through", () => {
+  it("info inlines trailing context object as compact JSON", () => {
     logger.info("request handled", { method: "GET", status: 200 });
-    expect(console.log).toHaveBeenCalledWith("ℹ️", "request handled", { method: "GET", status: 200 });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('request handled {"method":"GET","status":200}')
+    );
   });
 
-  it("error passes trailing context object through", () => {
+  it("error inlines trailing context object as compact JSON", () => {
     logger.error("request failed", { method: "POST", status: 500 });
-    expect(console.log).toHaveBeenCalledWith("⛔️", "request failed", { method: "POST", status: 500 });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('request failed {"method":"POST","status":500}')
+    );
   });
 });
