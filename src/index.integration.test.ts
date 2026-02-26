@@ -57,16 +57,32 @@ async function pollForEntry(
   { attempts = 10, intervalMs = 2000 }: { attempts?: number; intervalMs?: number } = {}
 ): Promise<GcpEntry | undefined> {
   const logging = new Logging({ projectId: PROJECT });
+  // Use a broader filter and filter by testId in code to handle both textPayload and jsonPayload
   const filter = [
     `logName="projects/${PROJECT}/logs/${LOG_NAME}"`,
     `severity="${severity}"`,
-    `textPayload:"${testId}"`,
   ].join(" AND ");
 
   for (let i = 0; i < attempts; i++) {
     await new Promise(r => setTimeout(r, intervalMs));
-    const [entries] = await logging.getEntries({ filter, pageSize: 1 });
-    if (entries.length > 0) return entries[0] as GcpEntry;
+    const [entries] = await logging.getEntries({ filter, pageSize: 20 });
+    // Search through entries to find one containing the testId
+    const matching = entries.find((e: any) => {
+      const data = e.data || {};
+      // Handle textPayload (string)
+      if (typeof data === "string" && data.includes(testId)) {
+        return true;
+      }
+      // Handle jsonPayload (object with message field)
+      if (typeof data === "object" && data !== null) {
+        const jsonStr = JSON.stringify(data);
+        if (jsonStr.includes(testId)) {
+          return true;
+        }
+      }
+      return false;
+    });
+    if (matching) return matching as GcpEntry;
   }
 
   return undefined;

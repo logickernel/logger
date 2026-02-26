@@ -172,4 +172,31 @@ describe("logger (console backend)", () => {
       expect.stringContaining('request failed { "method": "POST", "status": 500 }')
     );
   });
+
+  it("defaults to plain format when LOGGER_FORMAT is not set", async () => {
+    applyEnv({
+      GCP_PROJECT: undefined,
+      LOGGER_TARGET: "console",
+      LOGGER_FORMAT: undefined, // Not set - should default to plain
+    });
+    const { logger } = await importFresh();
+    logger.info("test message");
+    expect(console.log).toHaveBeenCalledWith("test message");
+  });
+
+  it("uses plain format when LOGGER_FORMAT is not 'pretty'", async () => {
+    applyEnv({
+      GCP_PROJECT: undefined,
+      LOGGER_TARGET: "console",
+      LOGGER_FORMAT: "plain", // Explicitly not "pretty"
+    });
+    const { logger } = await importFresh();
+    logger.info("test message", { key: "value" });
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('test message { "key": "value" }')
+    );
+    expect(console.log).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^⚪️/)
+    );
+  });
 });
