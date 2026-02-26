@@ -20,6 +20,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src/index.test.ts",
+    "publish": "npm run build && npm publish",
     "test:integration": "vitest run src/index.integration.test.ts",
     "test:watch": "vitest"
   },
