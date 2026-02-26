@@ -20,7 +20,6 @@ export function formatMessage(args: unknown[]): string {
 
 // Resolved once at module load — no per-call branching.
 const USE_GCP = process.env.SYSTEM_LOGS === "gcp" || !!process.env.K_SERVICE;
-const IS_PROD = process.env.NODE_ENV === "production";
 const noop = (): void => {};
 
 let gcpLog: ReturnType<Logging["log"]> | null = null;
@@ -37,7 +36,7 @@ export const logger: Logger = gcpLog
   ? (() => {
       const g = gcpLog!;
       return {
-        debug: IS_PROD ? noop : (...args: unknown[]): void => {
+        debug: (...args: unknown[]): void => {
           const msg = formatMessage(args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a));
           g.write(g.entry({ severity: "DEBUG" }, msg)).catch(noop);
         },
@@ -50,7 +49,7 @@ export const logger: Logger = gcpLog
       };
     })()
   : {
-      debug: IS_PROD ? noop : (...args: unknown[]): void => {
+      debug: (...args: unknown[]): void => {
         console.log("[DEBUG]", ...args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a));
       },
       info: (...args: unknown[]): void => {

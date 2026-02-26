@@ -59,35 +59,3 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith("[DEBUG]", "line1 line2");
   });
 });
-
-describe("logger in production (NODE_ENV=production)", () => {
-  it("debug is a noop", async () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-
-    vi.resetModules();
-    const { logger: prodLogger } = await import("./index.js");
-
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    prodLogger.debug("should be silent");
-    expect(console.log).not.toHaveBeenCalled();
-
-    vi.restoreAllMocks();
-    process.env.NODE_ENV = originalEnv;
-  });
-
-  it("info still works in production", async () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-
-    vi.resetModules();
-    const { logger: prodLogger } = await import("./index.js");
-
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    prodLogger.info("still visible");
-    expect(console.log).toHaveBeenCalledWith("[INFO]", "still visible");
-
-    vi.restoreAllMocks();
-    process.env.NODE_ENV = originalEnv;
-  });
-});
