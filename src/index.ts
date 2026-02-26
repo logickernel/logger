@@ -25,9 +25,11 @@ export function formatMessage(args: unknown[]): string {
 
 // Resolved once at module load — no per-call branching.
 const LOGGER_TARGET = process.env.LOGGER_TARGET?.toLowerCase();
+const LOGGER_FORMAT = process.env.LOGGER_FORMAT?.toLowerCase();
 const FORCE_GCP = LOGGER_TARGET === "gcp";
 const FORCE_CONSOLE = LOGGER_TARGET === "console";
 const USE_GCP = !FORCE_CONSOLE && (FORCE_GCP || !!process.env.GCP_PROJECT);
+const CONSOLE_PRETTY = LOGGER_FORMAT === "pretty";
 const noop = (): void => {};
 
 // Formats a single console log line: "{emoji} {local timestamp} {message} [{payload}]"
@@ -39,6 +41,20 @@ function consoleLine(emoji: string, args: unknown[]): string {
   const msg = formatMessage(hasPayload ? args.slice(0, -1) : args);
   const suffix = hasPayload ? " " + JSON.stringify(last, null, 2).replace(/\n\s*/g, " ") : "";
   return `${emoji} ${ts} ${msg}${suffix}`;
+}
+
+// Plain console line: "message [{payload}]"
+function consolePlain(args: unknown[]): string {
+  const last = args[args.length - 1];
+  const hasPayload =
+    args.length >= 2 &&
+    last !== null &&
+    typeof last === "object" &&
+    !Array.isArray(last) &&
+    !(last instanceof Error);
+  const msg = formatMessage(hasPayload ? args.slice(0, -1) : args);
+  const suffix = hasPayload ? " " + JSON.stringify(last, null, 2).replace(/\n\s*/g, " ") : "";
+  return `${msg}${suffix}`;
 }
 
 // If the last arg is a plain object, return a jsonPayload so Cloud Logging
@@ -72,7 +88,7 @@ export const logger: Logger = gcpLog
       const g = gcpLog!;
       return {
         debug: (...args: unknown[]): void => {
-          const mapped = args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a);
+          const mapped = args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a));
           g.write(g.entry({ severity: "DEBUG" }, gcpPayload(mapped))).catch(noop);
         },
         info: (...args: unknown[]): void => {
@@ -98,17 +114,39 @@ export const logger: Logger = gcpLog
         },
       };
     })()
-  : {
+  : CONSOLE_PRETTY
+  ? {
       debug: (...args: unknown[]): void => {
-        console.log(consoleLine("🐞", args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a)));
+        console.log(
+          consoleLine(
+            "🐞",
+            args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a)),
+          ),
+        );
       },
       info:      (...args: unknown[]): void => { console.log(consoleLine("⚪️", args)); },
       notice:    (...args: unknown[]): void => { console.log(consoleLine("🔵", args)); },
       warning:   (...args: unknown[]): void => { console.log(consoleLine("🟡", args)); },
-      error:     (...args: unknown[]): void => { console.log(consoleLine("⛔️", args)); },
-      critical:  (...args: unknown[]): void => { console.log(consoleLine("❗️", args)); },
-      alert:     (...args: unknown[]): void => { console.log(consoleLine("🔴", args)); },
+      error:     (...args: unknown[]): void => { console.log(consoleLine("🔴", args)); },
+      critical:  (...args: unknown[]): void => { console.log(consoleLine("⛔️", args)); },
+      alert:     (...args: unknown[]): void => { console.log(consoleLine("❗️", args)); },
       emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨", args)); },
+    }
+  : {
+      debug: (...args: unknown[]): void => {
+        console.log(
+          consolePlain(
+            args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a)),
+          ),
+        );
+      },
+      info:      (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      notice:    (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      warning:   (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      error:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      critical:  (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      alert:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      emergency: (...args: unknown[]): void => { console.log(consolePlain(args)); },
     };
 
 export default logger;

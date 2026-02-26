@@ -68,12 +68,12 @@ The default export is a **singleton** whose backend is chosen at module load:
 | Method | GCP severity | Console emoji |
 |---|---|---|
 | `debug` | `DEBUG` | 🐞 |
-| `info` | `INFO` | ℹ️ |
-| `notice` | `NOTICE` | *️⃣ |
-| `warning` | `WARNING` | ⚠️ |
+| `info` | `INFO` | ⚪️ |
+| `notice` | `NOTICE` | 🔵 |
+| `warning` | `WARNING` | 🟡 |
 | `error` | `ERROR` | ⛔️ |
 | `critical` | `CRITICAL` | ❗️ |
-| `alert` | `ALERT` | ‼️ |
+| `alert` | `ALERT` | 🔴 |
 | `emergency` | `EMERGENCY` | 🚨 |
 
 ### Structured context
@@ -89,19 +89,31 @@ logger.info("request complete", { method: "GET", path: "/api/users", status: 200
 
 ### Console format
 
+By default, console logs are plain: `message [payload]` without emoji or timestamp.
+
+When `LOGGER_FORMAT=pretty`, console logs look like:
+
 ```
-ℹ️ 2026-02-26 13:04:22.120 server started
+⚪️ 2026-02-26 13:04:22.120 server started
 🐞 2026-02-26 13:04:22.341 cache miss { "key": "user:42", "ttl": 300 }
-⚠️ 2026-02-26 13:04:22.512 disk space low { "used": "92%", "mount": "/data" }
+🟡 2026-02-26 13:04:22.512 disk space low { "used": "92%", "mount": "/data" }
 ```
+
+This "pretty" format (emoji + local timestamp + message + optional payload) is meant to roughly emulate what you see in the GCP Logging console when browsing entries by severity and time.
 
 ### Environment variables
 
-- `GCP_PROJECT`
-  Project ID for Google Cloud Logging. When set, the GCP backend is used.
+- `GCP_PROJECT`  
+  Project ID for Google Cloud Logging. When set (and `LOGGER_TARGET` isn’t forcing console), the GCP backend is used.
 
-- `K_SERVICE`
+- `K_SERVICE`  
   Used as the log name in Google Cloud Logging. If not set, `"app"` is used.
+
+- `LOGGER_TARGET`  
+  Optional override for the backend: `"gcp"` forces the GCP logger when possible, `"console"` forces the console logger.
+
+- `LOGGER_FORMAT`  
+  Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines (mirroring the feel of GCP Logging's console UI); otherwise (default) prints plain `message [payload]` without emoji or timestamp.
 
 ### Named exports
 

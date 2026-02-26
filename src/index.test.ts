@@ -64,19 +64,19 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low"));
   });
 
-  it("error logs with ⛔️ and timestamp", () => {
+  it("error logs with 🔴 and timestamp", () => {
     logger.error("something broke");
-    expect(console.log).toHaveBeenCalledWith(line("⛔️", "something broke"));
+    expect(console.log).toHaveBeenCalledWith(line("🔴", "something broke"));
   });
 
-  it("critical logs with ❗️ and timestamp", () => {
+  it("critical logs with ⛔️ and timestamp", () => {
     logger.critical("primary db down");
-    expect(console.log).toHaveBeenCalledWith(line("❗️", "primary db down"));
+    expect(console.log).toHaveBeenCalledWith(line("⛔️", "primary db down"));
   });
 
-  it("alert logs with 🔴 and timestamp", () => {
+  it("alert logs with ❗️ and timestamp", () => {
     logger.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith(line("🔴", "data loss imminent"));
+    expect(console.log).toHaveBeenCalledWith(line("❗️", "data loss imminent"));
   });
 
   it("emergency logs with 🚨 and timestamp", () => {
