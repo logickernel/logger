@@ -5,9 +5,10 @@ Lightweight Node.js logger that automatically routes logs to **Google Cloud Logg
 ```ts
 import logger from "@logickernel/logger";
 
-logger.info("server started");
-logger.debug({ port: 3000, env: process.env.NODE_ENV });
+logger.info("server started", { port: 3000 });
+logger.debug("user action", { userId: "123", action: "login" });
 logger.error(new Error("something went wrong"));
+logger.warning("disk space low", { used: "92%", mount: "/data" });
 ```
 
 > Your code never has to care whether it’s running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -16,16 +17,17 @@ logger.error(new Error("something went wrong"));
 
 ## 1. Introduction
 
-- **What it is**: A tiny logging helper with a fixed interface (`debug`, `info`, `error`) and a smart backend:
-  - In **GCP** (or when `SYSTEM_LOGS=gcp`): writes to Google Cloud Logging with proper severities.
-  - Otherwise: writes to `console.log` with simple prefixes.
+- **What it is**: A tiny logging helper with the full GCP severity ladder and a smart backend:
+  - In **GCP** (or when `SYSTEM_LOGS=gcp`): writes to Google Cloud Logging with proper severities and structured `jsonPayload` when a context object is provided.
+  - Otherwise: writes to the local console with emoji prefixes, a local timestamp, and the context object inlined as compact JSON.
 - **Why it exists**: To avoid sprinkling environment-specific logging logic across your codebase. You import one `logger` and use it everywhere.
 
 **Key features**
 
 - **Zero config in GCP**: Uses `K_SERVICE` and `GCP_PROJECT` from the environment.
 - **Auto backend selection**: GCP vs console decided once at module load.
-- **Production-safe debug**: `debug` is a noop when `NODE_ENV=production`.
+- **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
+- **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and compact inline JSON in the console.
 - **Tiny API**: One default export (`logger`) plus a `formatMessage` helper if you need it.
 
 ---
@@ -73,9 +75,11 @@ npm install @logickernel/logger
 ```ts
 import logger from "@logickernel/logger";
 
-logger.info("hello from my service");
-logger.debug({ userId: "123", action: "login" });
+logger.info("server started", { port: 3000 });
+logger.debug("user action", { userId: "123", action: "login" });
+logger.warning("disk space low", { used: "92%", mount: "/data" });
 logger.error(new Error("oops"));
+logger.critical("primary db unreachable", { host: "db-1" });
 ```
 
 The default export is a **singleton** whose backend is chosen at module load:
@@ -85,19 +89,47 @@ The default export is a **singleton** whose backend is chosen at module load:
   - `K_SERVICE` is set (e.g. Cloud Run)
 - Otherwise, the **console backend** is used.
 
+### Severity methods
+
+| Method | GCP severity | Console emoji |
+|---|---|---|
+| `debug` | `DEBUG` | 🐞 |
+| `info` | `INFO` | ℹ️ |
+| `notice` | `NOTICE` | *️⃣ |
+| `warning` | `WARNING` | ⚠️ |
+| `error` | `ERROR` | ⛔️ |
+| `critical` | `CRITICAL` | ❗️ |
+| `alert` | `ALERT` | ‼️ |
+| `emergency` | `EMERGENCY` | 🚨 |
+
+### Structured context
+
+Pass a plain object as the last argument to attach structured data to a log entry:
+
+```ts
+logger.info("request complete", { method: "GET", path: "/api/users", status: 200, ms: 42 });
+```
+
+- **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
+- **Console backend**: inlined as compact JSON on the same line.
+
+### Console format
+
+```
+🐞 2026-02-26 13:04:22.341 user action {"userId":"123","action":"login"}
+⚠️ 2026-02-26 13:04:22.512 disk space low {"used":"92%","mount":"/data"}
+```
+
 ### Environment variables
 
-- `SYSTEM_LOGS=gcp`  
+- `SYSTEM_LOGS=gcp`
   Force GCP logging even if `K_SERVICE` is not set.
 
-- `K_SERVICE`  
+- `K_SERVICE`
   Used as the log name in Google Cloud Logging. If not set, `"app"` is used.
 
-- `GCP_PROJECT`  
+- `GCP_PROJECT`
   Project ID for Google Cloud Logging. Required when using the GCP backend.
-
-- `NODE_ENV=production`  
-  When set to `"production"`, `logger.debug` becomes a noop (no debug logs).
 
 ### Named exports
 
@@ -105,7 +137,7 @@ The default export is a **singleton** whose backend is chosen at module load:
 import logger, { Logger, formatMessage } from "@logickernel/logger";
 
 const myLogger: Logger = logger;
-const message = formatMessage(["hello", { id: 1 }]);
+const message = formatMessage(["hello", { id: 1 }]); // "hello {"id":1}"
 ```
 
 ---
