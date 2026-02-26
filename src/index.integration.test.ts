@@ -4,7 +4,7 @@ import { Logging } from "@google-cloud/logging";
 const PROJECT = "logickernel-logger";
 const LOG_NAME = "app";
 
-type GcpEntry = { data: unknown; metadata: { severity?: string } };
+type GcpEntry = { data: unknown; metadata: { severity?: string; labels?: Record<string, string> } };
 
 describe("GCP backend integration", () => {
   const originalEnv: Record<string, string | undefined> = {};
@@ -49,6 +49,45 @@ describe("GCP backend integration", () => {
   it("writes CRITICAL entry to Cloud Logging",  () => smokeTest("CRITICAL",  l => l.critical),  30_000);
   it("writes ALERT entry to Cloud Logging",     () => smokeTest("ALERT",     l => l.alert),     30_000);
   it("writes EMERGENCY entry to Cloud Logging", () => smokeTest("EMERGENCY", l => l.emergency), 30_000);
+});
+
+describe("GCP backend integration — ENVIRONMENT label", () => {
+  const originalEnv: Record<string, string | undefined> = {};
+
+  beforeAll(() => {
+    originalEnv.GCP_PROJECT = process.env.GCP_PROJECT;
+    originalEnv.LOGGER_NAME = process.env.LOGGER_NAME;
+    originalEnv.LOGGER_TARGET = process.env.LOGGER_TARGET;
+    originalEnv.ENVIRONMENT = process.env.ENVIRONMENT;
+    process.env.GCP_PROJECT = PROJECT;
+    process.env.LOGGER_NAME = LOG_NAME;
+    process.env.LOGGER_TARGET = "gcp";
+  });
+
+  afterAll(() => {
+    process.env.GCP_PROJECT = originalEnv.GCP_PROJECT;
+    process.env.LOGGER_NAME = originalEnv.LOGGER_NAME;
+    process.env.LOGGER_TARGET = originalEnv.LOGGER_TARGET;
+    if (originalEnv.ENVIRONMENT === undefined) delete process.env.ENVIRONMENT;
+    else process.env.ENVIRONMENT = originalEnv.ENVIRONMENT;
+  });
+
+  async function labelTest(environment: string): Promise<void> {
+    process.env.ENVIRONMENT = environment;
+    vi.resetModules();
+    const { logger } = await import("./index.js");
+
+    const testId = `it-env-${environment}-${Date.now()}`;
+    logger.info(`label smoke: environment=${environment} [${testId}]`);
+
+    const entry = await pollForEntry(testId, "INFO");
+    expect(entry, `no INFO entry arrived within timeout for environment=${environment}`).toBeDefined();
+    expect(entry!.metadata.labels?.environment).toBe(environment);
+  }
+
+  it("attaches environment=development label", () => labelTest("development"), 30_000);
+  it("attaches environment=staging label",     () => labelTest("staging"),     30_000);
+  it("attaches environment=production label",  () => labelTest("production"),  30_000);
 });
 
 async function pollForEntry(

@@ -31,6 +31,11 @@ const FORCE_CONSOLE = LOGGER_TARGET === "console";
 const USE_GCP = !FORCE_CONSOLE && (FORCE_GCP || !!process.env.GCP_PROJECT);
 const CONSOLE_PRETTY = LOGGER_FORMAT === "pretty";
 const noop = (): void => {};
+const gcpLabels: Record<string, string> = {};
+if (process.env.ENVIRONMENT) gcpLabels.environment = process.env.ENVIRONMENT;
+if (process.env.SERVICE_ID)  gcpLabels.service_id  = process.env.SERVICE_ID;
+if (process.env.VERSION)     gcpLabels.version      = process.env.VERSION;
+const GCP_ENV_LABEL = Object.keys(gcpLabels).length ? { labels: gcpLabels } : {};
 
 // Formats a single console log line: "{emoji} {local timestamp} {message} [{payload}]"
 function consoleLine(emoji: string, args: unknown[]): string {
@@ -89,28 +94,28 @@ export const logger: Logger = gcpLog
       return {
         debug: (...args: unknown[]): void => {
           const mapped = args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a));
-          g.write(g.entry({ severity: "DEBUG" }, gcpPayload(mapped))).catch(noop);
+          g.write(g.entry({ severity: "DEBUG", ...GCP_ENV_LABEL }, gcpPayload(mapped))).catch(noop);
         },
         info: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "INFO" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "INFO", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         notice: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "NOTICE" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "NOTICE", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         warning: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "WARNING" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "WARNING", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         error: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "ERROR" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "ERROR", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         critical: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "CRITICAL" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "CRITICAL", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         alert: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "ALERT" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "ALERT", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         emergency: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "EMERGENCY" }, gcpPayload(args))).catch(noop);
+          g.write(g.entry({ severity: "EMERGENCY", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
       };
     })()
