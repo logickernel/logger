@@ -11,7 +11,7 @@ logger.error(new Error("something went wrong"));
 logger.warning("disk space low", { used: "92%", mount: "/data" });
 ```
 
-> Your code never has to care whether it’s running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
+> Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
 
 ---
 
@@ -27,42 +27,12 @@ logger.warning("disk space low", { used: "92%", mount: "/data" });
 - **Zero config in GCP**: Uses `K_SERVICE` and `GCP_PROJECT` from the environment.
 - **Auto backend selection**: GCP vs console decided once at module load.
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
-- **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and compact inline JSON in the console.
+- **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
 - **Tiny API**: One default export (`logger`) plus a `formatMessage` helper if you need it.
 
 ---
 
-## 2. Local Setup (Development)
-
-### Prerequisites
-
-- **Node.js**: v18+ recommended (any actively supported LTS should work).
-- **npm** (or compatible package manager).
-
-### Clone and install
-
-```bash
-git clone https://github.com/logickernel/logger.git
-cd logger
-npm install
-```
-
-### Useful scripts
-
-```bash
-# Run tests
-npm test
-
-# Type-check
-npm run typecheck
-
-# Build the library
-npm run build
-```
-
----
-
-## 3. Installation & Usage (as a Library)
+## 2. Installation & Usage (as a Library)
 
 ### Install from npm
 
@@ -75,11 +45,17 @@ npm install @logickernel/logger
 ```ts
 import logger from "@logickernel/logger";
 
-logger.info("server started", { port: 3000 });
-logger.debug("user action", { userId: "123", action: "login" });
+// Message only
+logger.info("server started");
+logger.debug("cache miss");
+logger.error(new Error("connection refused"));
+
+// Message with structured context
+logger.info("server started", { port: 3000, env: "production" });
+logger.debug("cache miss", { key: "user:42", ttl: 300 });
 logger.warning("disk space low", { used: "92%", mount: "/data" });
-logger.error(new Error("oops"));
-logger.critical("primary db unreachable", { host: "db-1" });
+logger.error("request failed", { method: "POST", path: "/api/orders", status: 503 });
+logger.critical("primary db unreachable", { host: "db-1", retries: 3 });
 ```
 
 The default export is a **singleton** whose backend is chosen at module load:
@@ -111,12 +87,13 @@ logger.info("request complete", { method: "GET", path: "/api/users", status: 200
 ```
 
 - **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
-- **Console backend**: inlined as compact JSON on the same line.
+- **Console backend**: inlined as spaced JSON on the same line.
 
 ### Console format
 
 ```
-🐞 2026-02-26 13:04:22.341 user action { "userId": "123", "action": "login" }
+ℹ️ 2026-02-26 13:04:22.120 server started
+🐞 2026-02-26 13:04:22.341 cache miss { "key": "user:42", "ttl": 300 }
 ⚠️ 2026-02-26 13:04:22.512 disk space low { "used": "92%", "mount": "/data" }
 ```
 
@@ -142,8 +119,38 @@ const message = formatMessage(["hello", { id: 1 }]); // "hello {"id":1}"
 
 ---
 
+## 3. Local Setup (Development)
+
+### Prerequisites
+
+- **Node.js**: v18+ recommended (any actively supported LTS should work).
+- **npm** (or compatible package manager).
+
+### Clone and install
+
+```bash
+git clone https://github.com/logickernel/logger.git
+cd logger
+npm install
+```
+
+### Useful scripts
+
+```bash
+# Run tests
+npm test
+
+# Type-check
+npm run typecheck
+
+# Build the library
+npm run build
+```
+
+---
+
 ## 4. Additional Resources
 
 - **Package**: `@logickernel/logger` on npm.
 - **License**: MIT (see `LICENSE` in this repository).
-- **Contributions**: Feel free to open issues or pull requests if you’d like improvements (extra transports, richer metadata, etc.).
+- **Contributions**: Feel free to open issues or pull requests if you'd like improvements (extra transports, richer metadata, etc.).
