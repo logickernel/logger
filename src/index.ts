@@ -76,7 +76,7 @@ function gcpPayload(args: unknown[]): string | Record<string, unknown> {
 let gcpLog: ReturnType<Logging["log"]> | null = null;
 if (USE_GCP) {
   try {
-    const logName = process.env.K_SERVICE ?? "app";
+    const logName = process.env.LOGGER_NAME ?? process.env.K_SERVICE ?? "local";
     gcpLog = new Logging({ projectId: process.env.GCP_PROJECT }).log(logName);
   } catch {
     // GCP init failed; fall back to console

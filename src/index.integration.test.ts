@@ -11,11 +11,17 @@ describe("GCP backend integration", () => {
 
   beforeAll(() => {
     originalEnv.GCP_PROJECT = process.env.GCP_PROJECT;
+    originalEnv.LOGGER_NAME = process.env.LOGGER_NAME;
+    originalEnv.LOGGER_TARGET = process.env.LOGGER_TARGET;
     process.env.GCP_PROJECT = PROJECT;
+    process.env.LOGGER_NAME = LOG_NAME;
+    process.env.LOGGER_TARGET = "gcp";
   });
 
   afterAll(() => {
     process.env.GCP_PROJECT = originalEnv.GCP_PROJECT;
+    process.env.LOGGER_NAME = originalEnv.LOGGER_NAME;
+    process.env.LOGGER_TARGET = originalEnv.LOGGER_TARGET;
   });
 
   async function smokeTest(

@@ -24,7 +24,7 @@ logger.warning("disk space low", { used: "92%", mount: "/data" });
 
 **Key features**
 
-- **Zero config in GCP**: Uses `K_SERVICE` and `GCP_PROJECT` from the environment.
+- **Zero config in GCP**: Uses `LOGGER_NAME` / `K_SERVICE` and `GCP_PROJECT` from the environment.
 - **Auto backend selection**: GCP vs console decided once at module load.
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
 - **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
@@ -106,14 +106,17 @@ This "pretty" format (emoji + local timestamp + message + optional payload) is m
 - `GCP_PROJECT`  
   Project ID for Google Cloud Logging. When set (and `LOGGER_TARGET` isn’t forcing console), the GCP backend is used.
 
-- `K_SERVICE`  
-  Used as the log name in Google Cloud Logging. If not set, `"app"` is used.
+- `LOGGER_NAME`  
+  Log name in Google Cloud Logging. Falls back to `K_SERVICE`, then `"local"`.
 
 - `LOGGER_TARGET`  
   Optional override for the backend: `"gcp"` forces the GCP logger when possible, `"console"` forces the console logger.
 
 - `LOGGER_FORMAT`  
   Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines (mirroring the feel of GCP Logging's console UI); otherwise (default) prints plain `message [payload]` without emoji or timestamp.
+
+- `K_SERVICE`  
+  Fallback log name in Google Cloud Logging when `LOGGER_NAME` is not set. Usually set up by Google Cloud Run. If neither is set, `"local"` is used.
 
 ### Named exports
 
