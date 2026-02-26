@@ -30,7 +30,7 @@ const FORCE_CONSOLE = LOGGER_TARGET === "console";
 const USE_GCP = !FORCE_CONSOLE && (FORCE_GCP || !!process.env.GCP_PROJECT);
 const noop = (): void => {};
 
-// Formats a single console log line: "{emoji}: {local timestamp} {message} [{payload}]"
+// Formats a single console log line: "{emoji} {local timestamp} {message} [{payload}]"
 function consoleLine(emoji: string, args: unknown[]): string {
   const d = new Date();
   const ts = d.toLocaleString("sv-SE") + "." + String(d.getMilliseconds()).padStart(3, "0");
@@ -38,7 +38,7 @@ function consoleLine(emoji: string, args: unknown[]): string {
   const hasPayload = args.length >= 2 && last !== null && typeof last === "object" && !Array.isArray(last) && !(last instanceof Error);
   const msg = formatMessage(hasPayload ? args.slice(0, -1) : args);
   const suffix = hasPayload ? " " + JSON.stringify(last, null, 2).replace(/\n\s*/g, " ") : "";
-  return `${emoji}: ${ts} ${msg}${suffix}`;
+  return `${emoji} ${ts} ${msg}${suffix}`;
 }
 
 // If the last arg is a plain object, return a jsonPayload so Cloud Logging
@@ -102,12 +102,12 @@ export const logger: Logger = gcpLog
       debug: (...args: unknown[]): void => {
         console.log(consoleLine("🐞", args.map(a => typeof a === "string" ? a.replace(/\n/g, " ") : a)));
       },
-      info:      (...args: unknown[]): void => { console.log(consoleLine("ℹ️", args)); },
-      notice:    (...args: unknown[]): void => { console.log(consoleLine("*️⃣", args)); },
-      warning:   (...args: unknown[]): void => { console.log(consoleLine("⚠️", args)); },
+      info:      (...args: unknown[]): void => { console.log(consoleLine("⚪️", args)); },
+      notice:    (...args: unknown[]): void => { console.log(consoleLine("🔵", args)); },
+      warning:   (...args: unknown[]): void => { console.log(consoleLine("🟡", args)); },
       error:     (...args: unknown[]): void => { console.log(consoleLine("⛔️", args)); },
       critical:  (...args: unknown[]): void => { console.log(consoleLine("❗️", args)); },
-      alert:     (...args: unknown[]): void => { console.log(consoleLine("‼️", args)); },
+      alert:     (...args: unknown[]): void => { console.log(consoleLine("🔴", args)); },
       emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨", args)); },
     };
 

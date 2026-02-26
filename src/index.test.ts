@@ -42,26 +42,26 @@ describe("logger (console backend)", () => {
   // Timestamp pattern: "YYYY-MM-DD HH:MM:SS.mmm"
   const ts = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
   const line = (emoji: string, msg: string) =>
-    expect.stringMatching(new RegExp(`^${emoji}: ${ts.source} ${msg}$`));
+    expect.stringMatching(new RegExp(`^${emoji} ${ts.source} ${msg}$`));
 
   it("debug logs with 🐞 and timestamp", () => {
     logger.debug("verbose");
     expect(console.log).toHaveBeenCalledWith(line("🐞", "verbose"));
   });
 
-  it("info logs with ℹ️ and timestamp", () => {
+  it("info logs with ⚪️ and timestamp", () => {
     logger.info("hello");
-    expect(console.log).toHaveBeenCalledWith(line("ℹ️", "hello"));
+    expect(console.log).toHaveBeenCalledWith(line("⚪️", "hello"));
   });
 
-  it("notice logs with *️⃣ and timestamp", () => {
+  it("notice logs with 🔵 and timestamp", () => {
     logger.notice("normal but significant");
-    expect(console.log).toHaveBeenCalledWith(line("\\*️⃣", "normal but significant"));
+    expect(console.log).toHaveBeenCalledWith(line("🔵", "normal but significant"));
   });
 
-  it("warning logs with ⚠️ and timestamp", () => {
+  it("warning logs with 🟡 and timestamp", () => {
     logger.warning("disk space low");
-    expect(console.log).toHaveBeenCalledWith(line("⚠️", "disk space low"));
+    expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low"));
   });
 
   it("error logs with ⛔️ and timestamp", () => {
@@ -74,9 +74,9 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("❗️", "primary db down"));
   });
 
-  it("alert logs with ‼️ and timestamp", () => {
+  it("alert logs with 🔴 and timestamp", () => {
     logger.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith(line("‼️", "data loss imminent"));
+    expect(console.log).toHaveBeenCalledWith(line("🔴", "data loss imminent"));
   });
 
   it("emergency logs with 🚨 and timestamp", () => {
