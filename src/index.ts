@@ -101,13 +101,13 @@ export const logger: Logger = gcpLog
         console.log("⛔️", ...args);
       },
       critical: (...args: unknown[]): void => {
-        console.log("‼️", ...args);
+        console.log("❗️", ...args);
       },
       alert: (...args: unknown[]): void => {
-        console.log("🚨", ...args);
+        console.log("‼️", ...args);
       },
       emergency: (...args: unknown[]): void => {
-        console.log("🆘", ...args);
+        console.log("🚨", ...args);
       },
     };
 

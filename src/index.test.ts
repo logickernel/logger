@@ -64,19 +64,19 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith("⛔️", "something broke");
   });
 
-  it("critical logs with ‼️", () => {
+  it("critical logs with ❗️", () => {
     logger.critical("primary db down");
-    expect(console.log).toHaveBeenCalledWith("‼️", "primary db down");
+    expect(console.log).toHaveBeenCalledWith("❗️", "primary db down");
   });
 
-  it("alert logs with 🚨", () => {
+  it("alert logs with ‼️", () => {
     logger.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith("🚨", "data loss imminent");
+    expect(console.log).toHaveBeenCalledWith("‼️", "data loss imminent");
   });
 
-  it("emergency logs with 🆘", () => {
+  it("emergency logs with 🚨", () => {
     logger.emergency("system unusable");
-    expect(console.log).toHaveBeenCalledWith("🆘", "system unusable");
+    expect(console.log).toHaveBeenCalledWith("🚨", "system unusable");
   });
 
   it("debug replaces newlines in string args", () => {
