@@ -93,8 +93,7 @@ export const logger: Logger = gcpLog
       const g = gcpLog!;
       return {
         debug: (...args: unknown[]): void => {
-          const mapped = args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a));
-          g.write(g.entry({ severity: "DEBUG", ...GCP_ENV_LABEL }, gcpPayload(mapped))).catch(noop);
+          g.write(g.entry({ severity: "DEBUG", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
         },
         info: (...args: unknown[]): void => {
           g.write(g.entry({ severity: "INFO", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
@@ -121,14 +120,7 @@ export const logger: Logger = gcpLog
     })()
   : CONSOLE_PRETTY
   ? {
-      debug: (...args: unknown[]): void => {
-        console.log(
-          consoleLine(
-            "🐞",
-            args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a)),
-          ),
-        );
-      },
+      debug:     (...args: unknown[]): void => { console.log(consoleLine("🐞", args)); },
       info:      (...args: unknown[]): void => { console.log(consoleLine("⚪️", args)); },
       notice:    (...args: unknown[]): void => { console.log(consoleLine("🔵", args)); },
       warning:   (...args: unknown[]): void => { console.log(consoleLine("🟡", args)); },
@@ -138,13 +130,7 @@ export const logger: Logger = gcpLog
       emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨", args)); },
     }
   : {
-      debug: (...args: unknown[]): void => {
-        console.log(
-          consolePlain(
-            args.map(a => (typeof a === "string" ? a.replace(/\n/g, " ") : a)),
-          ),
-        );
-      },
+      debug:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
       info:      (...args: unknown[]): void => { console.log(consolePlain(args)); },
       notice:    (...args: unknown[]): void => { console.log(consolePlain(args)); },
       warning:   (...args: unknown[]): void => { console.log(consolePlain(args)); },

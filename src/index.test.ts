@@ -146,11 +146,6 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable"));
   });
 
-  it("debug replaces newlines in string args", async () => {
-    const { logger } = await importFresh();
-    logger.debug("line1\nline2");
-    expect(console.log).toHaveBeenCalledWith(line("🐞", "line1 line2"));
-  });
 
   it("debug inlines trailing context object as spaced JSON", async () => {
     const { logger } = await importFresh();

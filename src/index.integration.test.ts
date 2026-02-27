@@ -77,17 +77,6 @@ describe("GCP backend integration", () => {
   it("writes ALERT entry to Cloud Logging",     () => smokeTest("ALERT",     l => l.alert),     60_000);
   it("writes EMERGENCY entry to Cloud Logging", () => smokeTest("EMERGENCY", l => l.emergency), 60_000);
 
-  it("strips newlines from debug messages", async () => {
-    vi.resetModules();
-    const { logger } = await import("./index.js");
-    const testId = `it-newline-${Date.now()}`;
-    logger.debug(`line one\nline two [${testId}]`);
-    const entry = await pollForEntry(testId, "DEBUG");
-    expect(entry, "no DEBUG entry arrived within timeout").toBeDefined();
-    expect(entry!.data).toBe(`line one line two [${testId}]`);
-    expect(entry!.metadata.severity).toBe("DEBUG");
-  }, 60_000);
-
   it("sends string + trailing object as jsonPayload with merged fields", async () => {
     vi.resetModules();
     const { logger } = await import("./index.js");
