@@ -17,15 +17,17 @@ logger.warning("disk space low", { used: "92%", mount: "/data" });
 
 ## 1. Introduction
 
-- **What it is**: A tiny logging helper with the full GCP severity ladder and a smart backend:
-  - In **GCP** (or when `SYSTEM_LOGS=gcp`): writes to Google Cloud Logging with proper severities and structured `jsonPayload` when a context object is provided.
-  - Otherwise: writes to the local console with emoji prefixes, a local timestamp, and the context object inlined as compact JSON.
+- **What it is**: A tiny logging helper with the full GCP severity ladder and a configurable backend:
+  - In **GCP** (or when `LOGGER_TARGET=gcp`): writes to Google Cloud Logging with proper severities and structured `jsonPayload` when a context object is provided.
+  - On the **console**: writes with emoji prefixes, a local timestamp, and the context object inlined as compact JSON.
+  - **Both at once**: set `LOGGER_TARGET=gcp,console` to fan out to both.
 - **Why it exists**: To avoid sprinkling environment-specific logging logic across your codebase. You import one `logger` and use it everywhere.
 
 **Key features**
 
 - **Zero config in GCP**: Uses `LOGGER_NAME` / `K_SERVICE` and `GCP_PROJECT` from the environment.
-- **Auto backend selection**: GCP vs console decided once at module load.
+- **Auto backend selection**: GCP vs console decided once at module load; override with `LOGGER_TARGET`.
+- **Multi-backend**: `LOGGER_TARGET` accepts a comma-separated list — `"gcp,console"` writes to both simultaneously.
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
 - **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
 - **Tiny API**: One default export (`logger`) plus a `formatMessage` helper if you need it.
@@ -71,9 +73,9 @@ The default export is a **singleton** whose backend is chosen at module load:
 | `info` | `INFO` | ⚪️ |
 | `notice` | `NOTICE` | 🔵 |
 | `warning` | `WARNING` | 🟡 |
-| `error` | `ERROR` | ⛔️ |
-| `critical` | `CRITICAL` | ❗️ |
-| `alert` | `ALERT` | 🔴 |
+| `error` | `ERROR` | 🔴 |
+| `critical` | `CRITICAL` | ⛔️ |
+| `alert` | `ALERT` | ❗️ |
 | `emergency` | `EMERGENCY` | 🚨 |
 
 ### Structured context
@@ -91,7 +93,7 @@ logger.info("request complete", { method: "GET", path: "/api/users", status: 200
 
 By default, console logs are plain: `message [payload]` without emoji or timestamp.
 
-When `LOGGER_FORMAT=pretty`, console logs look like:
+When `LOGGER_CONSOLE_FORMAT=pretty`, console logs look like:
 
 ```
 ⚪️ 2026-02-26 13:04:22.120 server started
@@ -109,10 +111,10 @@ This "pretty" format (emoji + local timestamp + message + optional payload) is m
 - `LOGGER_NAME`  
   Log name in Google Cloud Logging. Falls back to `K_SERVICE`, then `"local"`.
 
-- `LOGGER_TARGET`  
-  Optional override for the backend: `"gcp"` forces the GCP logger when possible, `"console"` forces the console logger.
+- `LOGGER_TARGET`
+  Comma-separated list of backends to activate: `"gcp"`, `"console"`, or `"gcp,console"` for both simultaneously. When unset, GCP is used if `GCP_PROJECT` is set, otherwise console.
 
-- `LOGGER_FORMAT`  
+- `LOGGER_CONSOLE_FORMAT`
   Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines (mirroring the feel of GCP Logging's console UI); otherwise (default) prints plain `message [payload]` without emoji or timestamp.
 
 - `K_SERVICE`  

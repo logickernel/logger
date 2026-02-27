@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 
-type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_FORMAT" | "ENVIRONMENT" | "SERVICE_ID" | "VERSION";
-const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_FORMAT", "ENVIRONMENT", "SERVICE_ID", "VERSION"];
+type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE_ID" | "VERSION";
+const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE_ID", "VERSION"];
 
 function snapshotEnv(): Record<EnvKey, string | undefined> {
   return {
     GCP_PROJECT: process.env.GCP_PROJECT,
     LOGGER_TARGET: process.env.LOGGER_TARGET,
-    LOGGER_FORMAT: process.env.LOGGER_FORMAT,
+    LOGGER_CONSOLE_FORMAT: process.env.LOGGER_CONSOLE_FORMAT,
     ENVIRONMENT: process.env.ENVIRONMENT,
     SERVICE_ID: process.env.SERVICE_ID,
     VERSION: process.env.VERSION,
@@ -72,7 +72,7 @@ describe("logger (console backend)", () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
-      LOGGER_FORMAT: "pretty",
+      LOGGER_CONSOLE_FORMAT: "pretty",
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
@@ -171,22 +171,22 @@ describe("logger (console backend)", () => {
     );
   });
 
-  it("defaults to plain format when LOGGER_FORMAT is not set", async () => {
+  it("defaults to plain format when LOGGER_CONSOLE_FORMAT is not set", async () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
-      LOGGER_FORMAT: undefined, // Not set - should default to plain
+      LOGGER_CONSOLE_FORMAT: undefined, // Not set - should default to plain
     });
     const { logger } = await importFresh();
     logger.info("test message");
     expect(console.log).toHaveBeenCalledWith("test message");
   });
 
-  it("uses plain format when LOGGER_FORMAT is not 'pretty'", async () => {
+  it("uses plain format when LOGGER_CONSOLE_FORMAT is not 'pretty'", async () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
-      LOGGER_FORMAT: "plain", // Explicitly not "pretty"
+      LOGGER_CONSOLE_FORMAT: "plain", // Explicitly not "pretty"
     });
     const { logger } = await importFresh();
     logger.info("test message", { key: "value" });
@@ -196,6 +196,67 @@ describe("logger (console backend)", () => {
     expect(console.log).not.toHaveBeenCalledWith(
       expect.stringMatching(/^⚪️/)
     );
+  });
+});
+
+describe("logger (multi-backend: gcp,console)", () => {
+  const originalEnv: Record<EnvKey, string | undefined> = snapshotEnv();
+  let mockWrite: ReturnType<typeof vi.fn>;
+  let mockEntry: ReturnType<typeof vi.fn>;
+
+  beforeAll(() => {
+    Object.assign(originalEnv, snapshotEnv());
+  });
+
+  beforeEach(() => {
+    mockWrite = vi.fn().mockResolvedValue(undefined);
+    mockEntry = vi.fn((meta, payload) => ({ meta, payload }));
+    vi.doMock("@google-cloud/logging", () => ({
+      Logging: vi.fn().mockImplementation(() => ({
+        log: vi.fn().mockReturnValue({ write: mockWrite, entry: mockEntry }),
+      })),
+    }));
+    applyEnv({
+      GCP_PROJECT: "test-project",
+      LOGGER_TARGET: "gcp,console",
+      LOGGER_CONSOLE_FORMAT: undefined,
+      ENVIRONMENT: undefined,
+      SERVICE_ID: undefined,
+      VERSION: undefined,
+    });
+    vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.doUnmock("@google-cloud/logging");
+    restoreEnv(originalEnv);
+  });
+
+  afterAll(() => {
+    restoreEnv(originalEnv);
+  });
+
+  it("writes to both GCP and console on info", async () => {
+    const { logger } = await importFresh();
+    logger.info("dual write");
+    expect(mockWrite).toHaveBeenCalledOnce();
+    expect(console.log).toHaveBeenCalledWith("dual write");
+  });
+
+  it("writes to both GCP and console on error", async () => {
+    const { logger } = await importFresh();
+    logger.error("something broke");
+    expect(mockWrite).toHaveBeenCalledOnce();
+    expect(console.log).toHaveBeenCalledWith("something broke");
+  });
+
+  it("order in LOGGER_TARGET does not matter (console,gcp)", async () => {
+    applyEnv({ LOGGER_TARGET: "console,gcp" });
+    const { logger } = await importFresh();
+    logger.warning("order check");
+    expect(mockWrite).toHaveBeenCalledOnce();
+    expect(console.log).toHaveBeenCalledWith("order check");
   });
 });
 
@@ -219,7 +280,7 @@ describe("logger (GCP backend) — labels", () => {
     applyEnv({
       GCP_PROJECT: "test-project",
       LOGGER_TARGET: undefined,
-      LOGGER_FORMAT: undefined,
+      LOGGER_CONSOLE_FORMAT: undefined,
       ENVIRONMENT: undefined,
       SERVICE_ID: undefined,
       VERSION: undefined,

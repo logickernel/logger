@@ -24,12 +24,15 @@ export function formatMessage(args: unknown[]): string {
 }
 
 // Resolved once at module load — no per-call branching.
-const LOGGER_TARGET = process.env.LOGGER_TARGET?.toLowerCase();
-const LOGGER_FORMAT = process.env.LOGGER_FORMAT?.toLowerCase();
-const FORCE_GCP = LOGGER_TARGET === "gcp";
-const FORCE_CONSOLE = LOGGER_TARGET === "console";
-const USE_GCP = !FORCE_CONSOLE && (FORCE_GCP || !!process.env.GCP_PROJECT);
-const CONSOLE_PRETTY = LOGGER_FORMAT === "pretty";
+// LOGGER_TARGET accepts a comma-separated list of backends: "gcp", "console", or "gcp,console".
+const rawTargets = process.env.LOGGER_TARGET;
+const targets = rawTargets
+  ? new Set(rawTargets.toLowerCase().split(",").map(s => s.trim()).filter(Boolean))
+  : null;
+
+const USE_GCP     = targets ? targets.has("gcp")    : !!process.env.GCP_PROJECT;
+const USE_CONSOLE = targets ? targets.has("console") : !process.env.GCP_PROJECT;
+const CONSOLE_PRETTY = process.env.LOGGER_CONSOLE_FORMAT?.toLowerCase() === "pretty";
 const noop = (): void => {};
 const gcpLabels: Record<string, string> = {};
 if (process.env.ENVIRONMENT) gcpLabels.environment = process.env.ENVIRONMENT;
@@ -78,66 +81,63 @@ function gcpPayload(args: unknown[]): string | Record<string, unknown> {
   return formatMessage(args);
 }
 
-let gcpLog: ReturnType<Logging["log"]> | null = null;
+const backends: Logger[] = [];
+
 if (USE_GCP) {
   try {
     const logName = process.env.LOGGER_NAME ?? process.env.K_SERVICE ?? "local";
-    gcpLog = new Logging({ projectId: process.env.GCP_PROJECT }).log(logName);
+    const g = new Logging({ projectId: process.env.GCP_PROJECT }).log(logName);
+    backends.push({
+      debug:     (...args: unknown[]): void => { g.write(g.entry({ severity: "DEBUG",     ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      info:      (...args: unknown[]): void => { g.write(g.entry({ severity: "INFO",      ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      notice:    (...args: unknown[]): void => { g.write(g.entry({ severity: "NOTICE",    ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      warning:   (...args: unknown[]): void => { g.write(g.entry({ severity: "WARNING",   ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      error:     (...args: unknown[]): void => { g.write(g.entry({ severity: "ERROR",     ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      critical:  (...args: unknown[]): void => { g.write(g.entry({ severity: "CRITICAL",  ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      alert:     (...args: unknown[]): void => { g.write(g.entry({ severity: "ALERT",     ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+      emergency: (...args: unknown[]): void => { g.write(g.entry({ severity: "EMERGENCY", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop); },
+    });
   } catch {
-    // GCP init failed; fall back to console
+    // GCP init failed; will fall back to console
   }
 }
 
-export const logger: Logger = gcpLog
-  ? (() => {
-      const g = gcpLog!;
-      return {
-        debug: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "DEBUG", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        info: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "INFO", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        notice: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "NOTICE", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        warning: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "WARNING", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        error: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "ERROR", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        critical: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "CRITICAL", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        alert: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "ALERT", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
-        emergency: (...args: unknown[]): void => {
-          g.write(g.entry({ severity: "EMERGENCY", ...GCP_ENV_LABEL }, gcpPayload(args))).catch(noop);
-        },
+if (USE_CONSOLE || backends.length === 0) {
+  backends.push(CONSOLE_PRETTY
+    ? {
+        debug:     (...args: unknown[]): void => { console.log(consoleLine("🐞", args)); },
+        info:      (...args: unknown[]): void => { console.log(consoleLine("⚪️", args)); },
+        notice:    (...args: unknown[]): void => { console.log(consoleLine("🔵", args)); },
+        warning:   (...args: unknown[]): void => { console.log(consoleLine("🟡", args)); },
+        error:     (...args: unknown[]): void => { console.log(consoleLine("🔴", args)); },
+        critical:  (...args: unknown[]): void => { console.log(consoleLine("⛔️", args)); },
+        alert:     (...args: unknown[]): void => { console.log(consoleLine("❗️", args)); },
+        emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨", args)); },
+      }
+    : {
+        debug:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        info:      (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        notice:    (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        warning:   (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        error:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        critical:  (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        alert:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
+        emergency: (...args: unknown[]): void => { console.log(consolePlain(args)); },
+      });
+}
+
+export const logger: Logger =
+  backends.length === 1
+    ? backends[0]
+    : {
+        debug:     (...args: unknown[]): void => { backends.forEach(b => b.debug(...args));     },
+        info:      (...args: unknown[]): void => { backends.forEach(b => b.info(...args));      },
+        notice:    (...args: unknown[]): void => { backends.forEach(b => b.notice(...args));    },
+        warning:   (...args: unknown[]): void => { backends.forEach(b => b.warning(...args));   },
+        error:     (...args: unknown[]): void => { backends.forEach(b => b.error(...args));     },
+        critical:  (...args: unknown[]): void => { backends.forEach(b => b.critical(...args));  },
+        alert:     (...args: unknown[]): void => { backends.forEach(b => b.alert(...args));     },
+        emergency: (...args: unknown[]): void => { backends.forEach(b => b.emergency(...args)); },
       };
-    })()
-  : CONSOLE_PRETTY
-  ? {
-      debug:     (...args: unknown[]): void => { console.log(consoleLine("🐞", args)); },
-      info:      (...args: unknown[]): void => { console.log(consoleLine("⚪️", args)); },
-      notice:    (...args: unknown[]): void => { console.log(consoleLine("🔵", args)); },
-      warning:   (...args: unknown[]): void => { console.log(consoleLine("🟡", args)); },
-      error:     (...args: unknown[]): void => { console.log(consoleLine("🔴", args)); },
-      critical:  (...args: unknown[]): void => { console.log(consoleLine("⛔️", args)); },
-      alert:     (...args: unknown[]): void => { console.log(consoleLine("❗️", args)); },
-      emergency: (...args: unknown[]): void => { console.log(consoleLine("🚨", args)); },
-    }
-  : {
-      debug:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      info:      (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      notice:    (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      warning:   (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      error:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      critical:  (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      alert:     (...args: unknown[]): void => { console.log(consolePlain(args)); },
-      emergency: (...args: unknown[]): void => { console.log(consolePlain(args)); },
-    };
 
 export default logger;
