@@ -152,7 +152,7 @@ Scope (if set) appears in parentheses before the message. Labels are GCP metadat
   Comma-separated list of backends to activate: `"gcp"`, `"console"`, or `"gcp,console"` for both simultaneously. When unset, GCP is used if `GCP_PROJECT` is set, otherwise console.
 
 - `LOGGER_CONSOLE_FORMAT`
-  Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines; otherwise (default) prints plain `message [payload]` without emoji or timestamp.
+  Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines to emulate GCP's log viewer; otherwise (default) prints plain `message [payload]` without emoji or timestamp.
 
 - `ENVIRONMENT`
   Attached as `labels.environment` on every GCP entry. Useful for filtering by `"production"`, `"staging"`, etc.
