@@ -3,12 +3,13 @@
 Lightweight Node.js logger that automatically routes logs to **Google Cloud Logging** (when available) or the **local console**. Designed for small services and tools where you want structured logs in GCP without wiring up a full logging stack.
 
 ```ts
-import logger from "@logickernel/logger";
+import { logger } from "@logickernel/logger";
 
-logger.info("server started", { port: 3000 });
-logger.debug("user action", { userId: "123", action: "login" });
-logger.error(new Error("something went wrong"));
-logger.warning("disk space low", { used: "92%", mount: "/data" });
+const log = logger("api"); // optional scope label on every entry
+
+log.info("server started", { port: 3000 });
+log.debug("user action", { userId: "123", action: "login" });
+log.warning("disk space low", { used: "92%", mount: "/data" });
 ```
 
 > Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -30,7 +31,7 @@ logger.warning("disk space low", { used: "92%", mount: "/data" });
 - **Multi-backend**: `LOGGER_TARGET` accepts a comma-separated list — `"gcp,console"` writes to both simultaneously.
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
 - **Structured context**: Pass a plain object as the last argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
-- **Tiny API**: One default export (`logger`) plus a `formatMessage` helper if you need it.
+- **Tiny API**: `logger(scope?)` factory — call it once per module or service boundary.
 
 ---
 
@@ -45,25 +46,41 @@ npm install @logickernel/logger
 ### Basic usage
 
 ```ts
-import logger from "@logickernel/logger";
+import { logger } from "@logickernel/logger";
 
-// Message only
-logger.info("server started");
-logger.debug("cache miss");
-logger.error(new Error("connection refused"));
+// Scopeless logger — fine for scripts and simple tools
+const log = logger();
 
-// Message with structured context
-logger.info("server started", { port: 3000, env: "production" });
-logger.debug("cache miss", { key: "user:42", ttl: 300 });
-logger.warning("disk space low", { used: "92%", mount: "/data" });
-logger.error("request failed", { method: "POST", path: "/api/orders", status: 503 });
-logger.critical("primary db unreachable", { host: "db-1", retries: 3 });
+log.info("server started");
+log.debug("cache miss");
+log.warning("disk space low", { used: "92%", mount: "/data" });
+log.error("request failed", { method: "POST", path: "/api/orders", status: 503 });
+log.critical("primary db unreachable", { host: "db-1", retries: 3 });
+
+// Scoped logger — attaches scope: "api" to every entry as a GCP label
+const apiLog = logger("api");
+apiLog.info("request handled", { method: "GET", status: 200 });
+
+// Per-call labels — merged with scope and env labels for that entry only
+apiLog.info("request handled", { method: "GET", status: 200 }, { traceId: "abc-123" });
 ```
 
-The default export is a **singleton** whose backend is chosen at module load:
+`logger(scope?)` returns a `Logger` instance. Call it once per module or service boundary. The backend (GCP or console) is chosen once at module load:
 
 - **GCP backend** is used when `GCP_PROJECT` is set.
 - Otherwise, the **console backend** is used.
+
+### Method signature
+
+All eight severity methods share the same signature:
+
+```ts
+log.info(message: string, payload?: Record<string, unknown>, labels?: Record<string, string>): void
+```
+
+- **`message`** — required string.
+- **`payload`** — optional plain object. Becomes `jsonPayload` in GCP (fields indexed and queryable); inlined as compact JSON on the console.
+- **`labels`** — optional per-call labels merged with scope and env labels (GCP only; ignored on console).
 
 ### Severity methods
 
@@ -78,16 +95,35 @@ The default export is a **singleton** whose backend is chosen at module load:
 | `alert` | `ALERT` | ❗️ |
 | `emergency` | `EMERGENCY` | 🚨 |
 
-### Structured context
+### Scope
 
-Pass a plain object as the last argument to attach structured data to a log entry:
+`logger(scope)` attaches a `scope` label to every entry, letting you filter by component in Cloud Logging:
 
 ```ts
-logger.info("request complete", { method: "GET", path: "/api/users", status: 200, ms: 42 });
+const db = logger("db");
+db.warning("slow query", { ms: 412, query: "SELECT ..." });
+// GCP entry: labels.scope = "db"
+```
+
+### Structured context
+
+Pass a plain object as the second argument to attach structured data to a log entry:
+
+```ts
+log.info("request complete", { method: "GET", path: "/api/users", status: 200, ms: 42 });
 ```
 
 - **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
 - **Console backend**: inlined as spaced JSON on the same line.
+
+### Per-call labels
+
+Pass a `Record<string, string>` as the third argument to attach labels to a single entry (GCP only):
+
+```ts
+log.info("payment processed", { amount: 99 }, { traceId: "t-123", userId: "u-42" });
+// GCP entry: labels = { traceId: "t-123", userId: "u-42", ...scope, ...envLabels }
+```
 
 ### Console format
 
@@ -117,17 +153,19 @@ This "pretty" format (emoji + local timestamp + message + optional payload) is m
 - `LOGGER_CONSOLE_FORMAT`
   Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines (mirroring the feel of GCP Logging's console UI); otherwise (default) prints plain `message [payload]` without emoji or timestamp.
 
-- `K_SERVICE`  
+- `K_SERVICE`
   Fallback log name in Google Cloud Logging when `LOGGER_NAME` is not set. Usually set up by Google Cloud Run. If neither is set, `"local"` is used.
 
 ### Named exports
 
 ```ts
-import logger, { Logger, formatMessage } from "@logickernel/logger";
+import { logger } from "@logickernel/logger";
+import type { Logger } from "@logickernel/logger";
 
-const myLogger: Logger = logger;
-const message = formatMessage(["hello", { id: 1 }]); // "hello {"id":1}"
+const log: Logger = logger("my-scope");
 ```
+
+`logger` is also the default export: `import logger from "@logickernel/logger"`.
 
 ---
 

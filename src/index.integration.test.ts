@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { Logging } from "@google-cloud/logging";
+import type { Logger } from "./index.js";
 
 const PROJECT = "logickernel-logger";
 const LOG_NAME = "app";
@@ -55,13 +56,14 @@ describe("GCP backend integration", () => {
 
   async function smokeTest(
     severity: string,
-    logFn: (logger: Awaited<ReturnType<typeof import("./index.js")>>["logger"]) => (...args: unknown[]) => void,
+    logFn: (l: Logger) => (message: string) => void,
   ): Promise<void> {
     vi.resetModules();
-    const { logger } = await import("./index.js");
+    const mod = await import("./index.js");
+    const l = mod.logger();
     const testId  = `it-${severity.toLowerCase()}-${Date.now()}`;
     const message = `smoke: ${severity.toLowerCase()} [${testId}]`;
-    logFn(logger)(message);
+    logFn(l)(message);
     const entry = await pollForEntry(testId, severity);
     expect(entry, `no ${severity} entry arrived within timeout`).toBeDefined();
     expect(entry!.data).toBe(message);
@@ -77,11 +79,12 @@ describe("GCP backend integration", () => {
   it("writes ALERT entry to Cloud Logging",     () => smokeTest("ALERT",     l => l.alert),     60_000);
   it("writes EMERGENCY entry to Cloud Logging", () => smokeTest("EMERGENCY", l => l.emergency), 60_000);
 
-  it("sends string + trailing object as jsonPayload with merged fields", async () => {
+  it("sends string + payload as jsonPayload with merged fields", async () => {
     vi.resetModules();
-    const { logger } = await import("./index.js");
+    const mod = await import("./index.js");
+    const l = mod.logger();
     const testId = `it-json-${Date.now()}`;
-    logger.info(`json payload smoke [${testId}]`, { requestId: "req-001", userId: "usr-42" });
+    l.info(`json payload smoke [${testId}]`, { requestId: "req-001", userId: "usr-42" });
     const entry = await pollForEntry(testId, "INFO");
     expect(entry, "no INFO entry arrived within timeout").toBeDefined();
     expect(typeof entry!.data).toBe("object");
@@ -124,9 +127,10 @@ describe("GCP backend integration — labels", () => {
   ): Promise<void> {
     for (const [k, v] of Object.entries(envOverrides)) process.env[k] = v;
     vi.resetModules();
-    const { logger } = await import("./index.js");
+    const mod = await import("./index.js");
+    const l = mod.logger();
     const testId = `it-label-${Object.keys(envOverrides).join("-")}-${Date.now()}`;
-    logger.info(`label smoke [${testId}]`);
+    l.info(`label smoke [${testId}]`);
     const entry = await pollForEntry(testId, "INFO");
     expect(entry, "no INFO entry arrived within timeout").toBeDefined();
     for (const [k, v] of Object.entries(expectedLabels))
@@ -146,4 +150,27 @@ describe("GCP backend integration — labels", () => {
     { ENVIRONMENT: "production", SERVICE_ID: "my-service", VERSION: "1.2.3" },
     { environment: "production", service_id: "my-service", version: "1.2.3" },
   ), 60_000);
+
+  it("attaches scope label", async () => {
+    vi.resetModules();
+    const mod = await import("./index.js");
+    const l = mod.logger("test-scope");
+    const testId = `it-scope-${Date.now()}`;
+    l.info(`scope smoke [${testId}]`);
+    const entry = await pollForEntry(testId, "INFO");
+    expect(entry, "no INFO entry arrived within timeout").toBeDefined();
+    expect(entry!.metadata.labels?.scope, 'label "scope" missing or wrong').toBe("test-scope");
+  }, 60_000);
+
+  it("merges scope and per-call labels", async () => {
+    vi.resetModules();
+    const mod = await import("./index.js");
+    const l = mod.logger("api");
+    const testId = `it-scope-percall-${Date.now()}`;
+    l.info(`scope+percall smoke [${testId}]`, undefined, { traceId: "t-1" });
+    const entry = await pollForEntry(testId, "INFO");
+    expect(entry, "no INFO entry arrived within timeout").toBeDefined();
+    expect(entry!.metadata.labels?.scope).toBe("api");
+    expect(entry!.metadata.labels?.traceId).toBe("t-1");
+  }, 60_000);
 });

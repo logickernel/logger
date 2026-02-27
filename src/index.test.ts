@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
+import type { Logger } from "./index.js";
 
 type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE_ID" | "VERSION";
 const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE_ID", "VERSION"];
@@ -31,35 +32,11 @@ function applyEnv(overrides: Partial<Record<EnvKey, string | undefined>>): void 
   }
 }
 
-async function importFresh(): Promise<Awaited<ReturnType<typeof import("./index.js")>>> {
+async function freshLogger(scope?: string): Promise<Logger> {
   vi.resetModules();
-  return await import("./index.js");
+  const mod = await import("./index.js");
+  return mod.logger(scope);
 }
-
-describe("formatMessage", () => {
-  it("joins string args", () => {
-    expect(["hello", "world"].join(" ")).toBe("hello world");
-  });
-
-  it("serializes plain objects as JSON", () => {
-    expect(JSON.stringify({ a: 1 })).toBe('{"a":1}');
-  });
-
-  it("serializes Errors by message", async () => {
-    const { formatMessage } = await importFresh();
-    const err = new Error("boom");
-    const result = formatMessage([err]);
-    expect(result).toContain("boom");
-  });
-
-  it("handles mixed args", async () => {
-    const { formatMessage } = await importFresh();
-    const result = formatMessage(["msg", { code: 42 }, new Error("oops")]);
-    expect(result).toContain("msg");
-    expect(result).toContain('"code":42');
-    expect(result).toContain("oops");
-  });
-});
 
 describe("logger (console backend)", () => {
   const originalEnv: Record<EnvKey, string | undefined> = snapshotEnv();
@@ -87,9 +64,9 @@ describe("logger (console backend)", () => {
   });
 
   it("has all severity functions", async () => {
-    const { logger } = await importFresh();
+    const log = await freshLogger();
     for (const method of ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"]) {
-      expect(typeof logger[method as keyof typeof logger]).toBe("function");
+      expect(typeof log[method as keyof typeof log]).toBe("function");
     }
   });
 
@@ -99,73 +76,72 @@ describe("logger (console backend)", () => {
     expect.stringMatching(new RegExp(`^${emoji} ${ts.source} ${msg}$`));
 
   it("debug logs with 🐞 and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.debug("verbose");
+    const log = await freshLogger();
+    log.debug("verbose");
     expect(console.log).toHaveBeenCalledWith(line("🐞", "verbose"));
   });
 
   it("info logs with ⚪️ and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.info("hello");
+    const log = await freshLogger();
+    log.info("hello");
     expect(console.log).toHaveBeenCalledWith(line("⚪️", "hello"));
   });
 
   it("notice logs with 🔵 and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.notice("normal but significant");
+    const log = await freshLogger();
+    log.notice("normal but significant");
     expect(console.log).toHaveBeenCalledWith(line("🔵", "normal but significant"));
   });
 
   it("warning logs with 🟡 and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.warning("disk space low");
+    const log = await freshLogger();
+    log.warning("disk space low");
     expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low"));
   });
 
   it("error logs with 🔴 and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.error("something broke");
+    const log = await freshLogger();
+    log.error("something broke");
     expect(console.log).toHaveBeenCalledWith(line("🔴", "something broke"));
   });
 
   it("critical logs with ⛔️ and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.critical("primary db down");
+    const log = await freshLogger();
+    log.critical("primary db down");
     expect(console.log).toHaveBeenCalledWith(line("⛔️", "primary db down"));
   });
 
   it("alert logs with ❗️ and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.alert("data loss imminent");
+    const log = await freshLogger();
+    log.alert("data loss imminent");
     expect(console.log).toHaveBeenCalledWith(line("❗️", "data loss imminent"));
   });
 
   it("emergency logs with 🚨 and timestamp", async () => {
-    const { logger } = await importFresh();
-    logger.emergency("system unusable");
+    const log = await freshLogger();
+    log.emergency("system unusable");
     expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable"));
   });
 
-
-  it("debug inlines trailing context object as spaced JSON", async () => {
-    const { logger } = await importFresh();
-    logger.debug("user logged in", { userId: "123", action: "login" });
+  it("debug inlines payload as spaced JSON", async () => {
+    const log = await freshLogger();
+    log.debug("user logged in", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('user logged in { "userId": "123", "action": "login" }')
     );
   });
 
-  it("info inlines trailing context object as spaced JSON", async () => {
-    const { logger } = await importFresh();
-    logger.info("request handled", { method: "GET", status: 200 });
+  it("info inlines payload as spaced JSON", async () => {
+    const log = await freshLogger();
+    log.info("request handled", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('request handled { "method": "GET", "status": 200 }')
     );
   });
 
-  it("error inlines trailing context object as spaced JSON", async () => {
-    const { logger } = await importFresh();
-    logger.error("request failed", { method: "POST", status: 500 });
+  it("error inlines payload as spaced JSON", async () => {
+    const log = await freshLogger();
+    log.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('request failed { "method": "POST", "status": 500 }')
     );
@@ -175,10 +151,10 @@ describe("logger (console backend)", () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
-      LOGGER_CONSOLE_FORMAT: undefined, // Not set - should default to plain
+      LOGGER_CONSOLE_FORMAT: undefined,
     });
-    const { logger } = await importFresh();
-    logger.info("test message");
+    const log = await freshLogger();
+    log.info("test message");
     expect(console.log).toHaveBeenCalledWith("test message");
   });
 
@@ -186,10 +162,10 @@ describe("logger (console backend)", () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
-      LOGGER_CONSOLE_FORMAT: "plain", // Explicitly not "pretty"
+      LOGGER_CONSOLE_FORMAT: "plain",
     });
-    const { logger } = await importFresh();
-    logger.info("test message", { key: "value" });
+    const log = await freshLogger();
+    log.info("test message", { key: "value" });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('test message { "key": "value" }')
     );
@@ -238,23 +214,23 @@ describe("logger (multi-backend: gcp,console)", () => {
   });
 
   it("writes to both GCP and console on info", async () => {
-    const { logger } = await importFresh();
-    logger.info("dual write");
+    const log = await freshLogger();
+    log.info("dual write");
     expect(mockWrite).toHaveBeenCalledOnce();
     expect(console.log).toHaveBeenCalledWith("dual write");
   });
 
   it("writes to both GCP and console on error", async () => {
-    const { logger } = await importFresh();
-    logger.error("something broke");
+    const log = await freshLogger();
+    log.error("something broke");
     expect(mockWrite).toHaveBeenCalledOnce();
     expect(console.log).toHaveBeenCalledWith("something broke");
   });
 
   it("order in LOGGER_TARGET does not matter (console,gcp)", async () => {
     applyEnv({ LOGGER_TARGET: "console,gcp" });
-    const { logger } = await importFresh();
-    logger.warning("order check");
+    const log = await freshLogger();
+    log.warning("order check");
     expect(mockWrite).toHaveBeenCalledOnce();
     expect(console.log).toHaveBeenCalledWith("order check");
   });
@@ -301,8 +277,8 @@ describe("logger (GCP backend) — labels", () => {
     process.env.ENVIRONMENT = "production";
     process.env.SERVICE_ID  = "my-service";
     process.env.VERSION     = "1.2.3";
-    const { logger } = await importFresh();
-    logger.info("hello");
+    const log = await freshLogger();
+    log.info("hello");
     expect(mockEntry).toHaveBeenCalledWith(
       expect.objectContaining({ labels: { environment: "production", service_id: "my-service", version: "1.2.3" } }),
       expect.anything(),
@@ -311,16 +287,53 @@ describe("logger (GCP backend) — labels", () => {
 
   it("attaches only present labels when some vars are unset", async () => {
     process.env.SERVICE_ID = "my-service";
-    const { logger } = await importFresh();
-    logger.info("hello");
+    const log = await freshLogger();
+    log.info("hello");
     const [[meta]] = mockEntry.mock.calls;
     expect(meta.labels).toEqual({ service_id: "my-service" });
   });
 
   it("omits labels entirely when no label vars are set", async () => {
-    const { logger } = await importFresh();
-    logger.info("hello");
+    const log = await freshLogger();
+    log.info("hello");
     const [[meta]] = mockEntry.mock.calls;
     expect(meta).not.toHaveProperty("labels");
+  });
+
+  it("attaches scope label from factory argument", async () => {
+    const log = await freshLogger("my-scope");
+    log.info("hello");
+    expect(mockEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: { scope: "my-scope" } }),
+      expect.anything(),
+    );
+  });
+
+  it("attaches per-call labels from third argument", async () => {
+    const log = await freshLogger();
+    log.info("hello", undefined, { requestId: "req-1" });
+    expect(mockEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: { requestId: "req-1" } }),
+      expect.anything(),
+    );
+  });
+
+  it("merges scope and per-call labels", async () => {
+    const log = await freshLogger("api");
+    log.info("hello", undefined, { traceId: "t-1" });
+    expect(mockEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: { scope: "api", traceId: "t-1" } }),
+      expect.anything(),
+    );
+  });
+
+  it("merges env labels, scope, and per-call labels", async () => {
+    process.env.ENVIRONMENT = "staging";
+    const log = await freshLogger("worker");
+    log.info("hello", undefined, { jobId: "j-99" });
+    expect(mockEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: { environment: "staging", scope: "worker", jobId: "j-99" } }),
+      expect.anything(),
+    );
   });
 });
