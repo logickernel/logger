@@ -127,7 +127,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.debug("user logged in", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('user logged in\n  {\n    "userId": "123",\n    "action": "login"\n  }')
+      expect.stringContaining('user logged in\n    {\n      "userId": "123",\n      "action": "login"\n    }')
     );
   });
 
@@ -135,7 +135,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.info("request handled", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request handled\n  {\n    "method": "GET",\n    "status": 200\n  }')
+      expect.stringContaining('request handled\n    {\n      "method": "GET",\n      "status": 200\n    }')
     );
   });
 
@@ -143,7 +143,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request failed\n  {\n    "method": "POST",\n    "status": 500\n  }')
+      expect.stringContaining('request failed\n    {\n      "method": "POST",\n      "status": 500\n    }')
     );
   });
 

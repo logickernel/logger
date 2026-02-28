@@ -135,18 +135,18 @@ When `LOGGER_CONSOLE_FORMAT=pretty`, console logs look like:
 ```
 ⚪️ 2026-02-26 13:04:22.120 server started
 🐞 2026-02-26 13:04:22.341 (api) cache miss
-  {
-    "key": "user:42",
-    "ttl": 300
-  }
+    {
+      "key": "user:42",
+      "ttl": 300
+    }
 🟡 2026-02-26 13:04:22.512 disk space low
-  {
-    "used": "92%",
-    "mount": "/data"
-  }
+    {
+      "used": "92%",
+      "mount": "/data"
+    }
 ```
 
-Scope (if set) appears in parentheses before the message. Payload (if any) is printed on the next line with 2-space indentation. Labels are GCP metadata and are not shown on the console.
+Scope (if set) appears in parentheses before the message. Payload (if any) is printed on the next line with 4-space indentation. Labels are GCP metadata and are not shown on the console.
 
 ### Environment variables
 
