@@ -133,13 +133,13 @@ By default, console logs are plain: `[(scope) ]message[ {payload}]` without emoj
 When `LOGGER_CONSOLE_FORMAT=pretty`, console logs look like:
 
 ```
-⚪️ 2026-02-26 13:04:22.120 server started
-🐞 2026-02-26 13:04:22.341 (api) cache miss
+⚪️ 2026-02-26 13:04:22.120  server started
+🐞 2026-02-26 13:04:22.341  (api) cache miss
     {
       "key": "user:42",
       "ttl": 300
     }
-🟡 2026-02-26 13:04:22.512 disk space low
+🟡 2026-02-26 13:04:22.512  disk space low
     {
       "used": "92%",
       "mount": "/data"
