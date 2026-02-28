@@ -53,6 +53,20 @@ log.info(message: string, payload?: Record<string, unknown>, labels?: Record<str
 
 ---
 
+## Message naming
+
+Use a specific, past-tense phrase. The message must be readable in a log stream without opening the payload.
+
+| Avoid | Use instead |
+|---|---|
+| `"error"` | `"payment charge failed"`, `"connection refused"` |
+| `"db error"` | `"query timed out"`, `"connection pool exhausted"` |
+| `"user action"` | `"user login"`, `"password reset requested"` |
+| `"job done"` | `"invoice batch processed"`, `"report generated"` |
+| `"request"` | `"request handled"`, `"request rejected"` |
+
+---
+
 ## Payload vs labels — the core rule
 
 `@logickernel/logger` is a **telemetry tool**. Log entries are data points for Cloud Monitoring dashboards and log-based metrics, not just text records.
@@ -72,8 +86,8 @@ log.info(message: string, payload?: Record<string, unknown>, labels?: Record<str
 - Boolean flags: `hit`, `success`, `cached`
 
 ```ts
-log.info("query executed", { ms: 42, rows: 120, cached: false, table: "orders" });
-log.error("payment failed", { code: "insufficient_funds", amount: 99.95, orderId: "o-8821" });
+log.info("query executed", { ms: 42, rows: 120, cached: false }, { table: "orders" });
+log.warning("payment charge declined", { amount: 99.95, orderId: "o-8821" }, { decline_code: "insufficient_funds" });
 ```
 
 ### Put in labels (scope or 3rd arg)
@@ -98,13 +112,13 @@ log.warning("retry scheduled", { attempt: 2, delayMs: 1000 }, { provider: "strip
 
 Labels on a GCP entry come from three sources, merged in this order (later wins):
 
-1. **Env labels** — set once at module load from `ENVIRONMENT`, `SERVICE_ID`, `VERSION`
+1. **Env labels** — set once at module load from `ENVIRONMENT`, `SERVICE`, `VERSION`
 2. **Scope** — set at `logger("scope")` call time
 3. **Per-call labels** — 3rd argument on individual log calls
 
 ```ts
-// Resulting labels: { environment: "production", service_id: "api", scope: "orders", method: "POST" }
-log.info("order created", { total: 49.99 }, { method: "POST" });
+// Resulting labels: { environment: "production", service: "api", scope: "orders", currency: "usd" }
+log.info("order created", { total: 49.99, items: 3 }, { currency: "usd" });
 ```
 
 ---
@@ -117,7 +131,7 @@ log.info("order created", { total: 49.99 }, { method: "POST" });
 | `GCP_PROJECT` | Enables GCP backend when set |
 | `LOGGER_TARGET` | Force backend: `"gcp"`, `"console"`, or `"gcp,console"` |
 | `ENVIRONMENT` | Attached as `labels.environment` on every entry |
-| `SERVICE_ID` | Attached as `labels.service_id` on every entry |
+| `SERVICE` | Attached as `labels.service` on every entry |
 | `VERSION` | Attached as `labels.version` on every entry |
 | `LOGGER_CONSOLE_FORMAT` | Set to `"pretty"` for emoji + timestamp output locally |
 
@@ -141,7 +155,10 @@ log.info("query done", {}, { ms: "42" }); // ms → payload as number
 // ✗ Using payload for categorization you need to group by in dashboards
 log.info("charge processed", { provider: "stripe", amount: 99 }); // provider → labels
 
-// ✗ Logging without any structured data when measurements are available
+// ✗ Measurements as strings — cannot be extracted as metric values in Cloud Monitoring
+log.warning("disk space low", { used: "92%", mount: "/data" }); // usedPct: 92 → payload, mount → labels
+
+// ✗ Logging without structured data when measurements are available
 log.info("request handled"); // missed opportunity — add { ms, status } to payload
 ```
 
@@ -164,7 +181,7 @@ export async function createOrder(data: OrderInput): Promise<Order> {
 
 export async function cancelOrder(id: string, reason: string): Promise<void> {
   await db.update(id, { status: "cancelled" });
-  log.notice("order cancelled", { orderId: id, reason }, { initiator: "user" });
+  log.notice("order cancelled", { orderId: id }, { reason, initiator: "user" });
 }
 
 export async function retryPayment(orderId: string, attempt: number): Promise<void> {

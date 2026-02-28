@@ -1,15 +1,15 @@
 ## @logickernel/logger
 
-Lightweight Node.js logger that automatically routes logs to **Google Cloud Logging** (when available) or the **local console**. Designed for small services and tools where you want structured logs in GCP without wiring up a full logging stack.
+Lightweight Node.js logger that automatically routes logs to **Google Cloud Logging** (when available) or the **local console**. Designed for services and tools where you want structured logs in GCP without wiring up a full logging stack.
 
 ```ts
 import { logger } from "@logickernel/logger";
 
 const log = logger("api"); // optional scope label on every entry
 
-log.info("server started", { port: 3000 });
-log.debug("user action", { userId: "123", action: "login" });
-log.warning("disk space low", { used: "92%", mount: "/data" });
+log.notice("server started", { startupMs: 432 });
+log.info("user login", { userId: "123" });
+log.warning("disk space low", { usedPct: 92 }, { mount: "/data" });
 ```
 
 > Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -52,15 +52,15 @@ import { logger } from "@logickernel/logger";
 // Scopeless logger — fine for scripts and simple tools
 const log = logger();
 
-log.info("server started");
+log.notice("server started");
 log.debug("cache miss");
-log.warning("disk space low", { used: "92%", mount: "/data" });
-log.error("request failed", { method: "POST", path: "/api/orders", status: 503 });
-log.critical("primary db unreachable", { host: "db-1", retries: 3 });
+log.warning("disk space low", { usedPct: 92 }, { mount: "/data" });
+log.error("request failed", { status: 503, ms: 1250 }, { method: "POST", route: "/api/orders" });
+log.critical("primary db unreachable", { retries: 3 }, { host: "db-1" });
 
 // Scoped logger — attaches scope: "api" to every entry as a GCP label
 const apiLog = logger("api");
-apiLog.info("request handled", { method: "GET", status: 200 });
+apiLog.info("request handled", { ms: 55, status: 200 }, { method: "GET" });
 
 // Per-call labels — merged with scope and env labels for that entry only
 apiLog.info("request handled", { ms: 42, status: 200 }, { method: "GET", route: "/users" });
@@ -102,7 +102,7 @@ log.info(message: string, payload?: Record<string, unknown>, labels?: Record<str
 
 ```ts
 const db = logger("db");
-db.warning("slow query", { ms: 412, query: "SELECT ..." });
+db.warning("slow query", { ms: 412, rows: 5200 });
 // GCP entry: labels.scope = "db"
 ```
 
@@ -111,7 +111,7 @@ db.warning("slow query", { ms: 412, query: "SELECT ..." });
 Pass a plain object as the second argument to attach structured data to a log entry:
 
 ```ts
-log.info("request complete", { method: "GET", path: "/api/users", status: 200, ms: 42 });
+log.info("request complete", { status: 200, ms: 42 }, { method: "GET", route: "/api/users" });
 ```
 
 - **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
@@ -130,10 +130,10 @@ log.info("payment processed", { amount: 99, orderId: "o-4421" }, { provider: "st
 
 By default, console logs are plain: `[(scope) ]message[ {payload}]` without emoji or timestamp.
 
-When `LOGGER_CONSOLE_FORMAT=pretty`, console logs look like:
+When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](https://cloud.google.com/logging/docs/view/logs-explorer-interface) — severity as an emoji, a local timestamp, and the payload expanded below the message — so local development feels close to what you see when browsing entries in production. Console logs look like:
 
 ```
-⚪️ 2026-02-26 13:04:22.120  server started
+🔵 2026-02-26 13:04:22.120  server started
 🐞 2026-02-26 13:04:22.341  (api) cache miss
     {
       "key": "user:42",
@@ -165,8 +165,8 @@ Scope (if set) appears in parentheses before the message. Payload (if any) is pr
 - `ENVIRONMENT`
   Attached as `labels.environment` on every GCP entry. Useful for filtering by `"production"`, `"staging"`, etc.
 
-- `SERVICE_ID`
-  Attached as `labels.service_id` on every GCP entry.
+- `SERVICE`
+  Attached as `labels.service` on every GCP entry.
 
 - `VERSION`
   Attached as `labels.version` on every GCP entry.
@@ -193,6 +193,19 @@ const log: Logger = logger("my-scope");
 
 Every log entry written to Cloud Logging is a queryable data point. The goal is to make those entries useful beyond text search: payload fields become extractable metric values (latency, counts, sizes), and labels become the dimensions you filter and group by in Cloud Monitoring dashboards and alerting policies.
 
+### Write specific, past-tense messages
+
+The message is what you read when scanning a log stream — it should be self-explanatory without opening the payload. Use a specific past-tense phrase.
+
+| Avoid | Prefer |
+|---|---|
+| `"error"` | `"payment charge failed"` |
+| `"db error"` | `"query timed out"`, `"connection pool exhausted"` |
+| `"user action"` | `"user login"`, `"password reset requested"` |
+| `"job done"` | `"invoice batch processed"`, `"report generated"` |
+
+Payload fields and labels exist for querying and metrics — the message is for humans.
+
 ### Payload carries values; labels carry categories
 
 The two data arguments serve distinct roles and should not be mixed:
@@ -205,14 +218,16 @@ The two data arguments serve distinct roles and should not be mixed:
 | Metrics use | Field values extracted into metric data points | Dimensions for aggregation and segmentation |
 | Cardinality | Can be high (IDs, URLs, queries) | Must be low (bounded enums and categories) |
 
-**Put measurements and context in payload:**
+**Put measurements and context in payload — always as numbers, not strings:**
 
 ```ts
-log.info("request handled", { ms: 42, status: 200, bytes: 1024 });
-log.info("cache result",    { hit: true, ttl: 300 });
-log.warning("slow query",   { ms: 850, rowsScanned: 12000 });
-log.info("job complete",    { processed: 142, failed: 3, durationMs: 5400 });
+log.info("request handled",     { ms: 42, status: 200, bytes: 1024 });
+log.info("cache result",        { hit: true, ttl: 300 });
+log.warning("slow query",       { ms: 850, rowsScanned: 12000 });
+log.info("batch job complete",  { processed: 142, failed: 3, durationMs: 5400 });
 ```
+
+Measurements must be numbers — `usedPct: 92`, not `used: "92%"`. Strings cannot be extracted as metric values in Cloud Monitoring.
 
 **Put grouping dimensions in labels:**
 
@@ -222,7 +237,7 @@ const log = logger("payments");
 
 // per-call labels add event-specific dimensions
 log.info("charge processed", { amount: 99.95 }, { provider: "stripe", currency: "usd" });
-log.error("charge failed",   { code: "card_declined" }, { provider: "stripe" });
+log.warning("charge failed",   { code: "card_declined" }, { provider: "stripe" });
 ```
 
 ### Keep label cardinality low
@@ -267,7 +282,7 @@ Once entries flow into Cloud Logging you can create log-based metrics in a few s
    jsonPayload.ms > 0
    ```
 3. For a **distribution metric** (e.g. request latency), set the **field extractor** to `jsonPayload.ms`.
-4. Add **label extractors** for the dimensions you want to slice by, e.g. `labels.scope`, `labels."service_id"`.
+4. Add **label extractors** for the dimensions you want to slice by, e.g. `labels.scope`, `labels."service"`.
 5. Chart the metric in **Cloud Monitoring** or attach an alerting policy (e.g. p99 latency > 500 ms).
 
 ---
