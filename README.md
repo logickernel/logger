@@ -22,7 +22,7 @@ log.warning("disk space low", { used: "92%", mount: "/data" });
   - In **GCP** (or when `LOGGER_TARGET=gcp`): writes to Google Cloud Logging with proper severities and structured `jsonPayload` when a payload object is provided.
   - On the **console**: writes with emoji prefixes, a local timestamp, and the payload inlined as compact JSON.
   - **Both at once**: set `LOGGER_TARGET=gcp,console` to fan out to both.
-- **Why it exists**: To avoid sprinkling environment-specific logging logic across your codebase. You import one factory and use it everywhere.
+- **Why it exists**: To make it easy to produce structured, queryable telemetry from any Node.js service without wiring up a separate metrics stack. Log entries are first-class data points: their `jsonPayload` fields and labels feed directly into Cloud Monitoring log-based metrics and dashboards.
 
 **Key features**
 
@@ -187,7 +187,92 @@ const log: Logger = logger("my-scope");
 
 ---
 
-## 3. Local Setup (Development)
+## 3. Best Practices
+
+### Purpose: structured telemetry, not just log lines
+
+Every log entry written to Cloud Logging is a queryable data point. The goal is to make those entries useful beyond text search: payload fields become extractable metric values (latency, counts, sizes), and labels become the dimensions you filter and group by in Cloud Monitoring dashboards and alerting policies.
+
+### Payload carries values; labels carry categories
+
+The two data arguments serve distinct roles and should not be mixed:
+
+| | `payload` — 2nd arg | `labels` — scope + 3rd arg |
+|---|---|---|
+| Type | `Record<string, unknown>` | `Record<string, string>` — strings only |
+| Purpose | Measurements and event data | Categorization and filtering |
+| GCP storage | Indexed as `jsonPayload` fields | Stored as entry labels |
+| Metrics use | Field values extracted into metric data points | Dimensions for aggregation and segmentation |
+| Cardinality | Can be high (IDs, URLs, queries) | Must be low (bounded enums and categories) |
+
+**Put measurements and context in payload:**
+
+```ts
+log.info("request handled", { ms: 42, status: 200, bytes: 1024 });
+log.info("cache result",    { hit: true, ttl: 300 });
+log.warning("slow query",   { ms: 850, rowsScanned: 12000 });
+log.info("job complete",    { processed: 142, failed: 3, durationMs: 5400 });
+```
+
+**Put grouping dimensions in labels:**
+
+```ts
+// scope sets a label on every entry from this logger
+const log = logger("payments");
+
+// per-call labels add event-specific dimensions
+log.info("charge processed", { amount: 99.95 }, { provider: "stripe", currency: "usd" });
+log.error("charge failed",   { code: "card_declined" }, { provider: "stripe" });
+```
+
+### Keep label cardinality low
+
+Labels become metric dimensions. High-cardinality values — user IDs, request IDs, raw URLs with path parameters — will explode the cardinality of any metric built on them and will be rejected or silently dropped by Cloud Monitoring. Put those values in the payload instead.
+
+```ts
+// Good — labels are bounded, payload carries the variable data
+log.info("payment processed", { amount: 99.95, userId: "u-9182", orderId: "o-4421" }, { provider: "stripe" });
+
+// Avoid — userId in labels has unbounded cardinality
+log.info("payment processed", { amount: 99.95 }, { provider: "stripe", userId: "u-9182" });
+```
+
+### Instantiate once per module or service boundary
+
+Create the logger at module scope, not inside request handlers or loops. The factory is lightweight, but calling it repeatedly is unnecessary and loses the benefit of a stable scope label.
+
+```ts
+// Good — created once, reused everywhere in this module
+const log = logger("orders");
+
+export async function createOrder(data: OrderData) {
+  log.info("order created", { orderId: data.id, total: data.total });
+}
+
+// Avoid — recreated on every call
+export async function createOrder(data: OrderData) {
+  logger("orders").info("order created", { orderId: data.id, total: data.total });
+}
+```
+
+### Building log-based metrics in Cloud Monitoring
+
+Once entries flow into Cloud Logging you can create log-based metrics in a few steps:
+
+1. Open **Cloud Logging → Log-based Metrics → Create metric**.
+2. Set a filter to scope the metric, e.g.:
+   ```
+   logName="projects/MY_PROJECT/logs/MY_LOG"
+   severity="INFO"
+   jsonPayload.ms > 0
+   ```
+3. For a **distribution metric** (e.g. request latency), set the **field extractor** to `jsonPayload.ms`.
+4. Add **label extractors** for the dimensions you want to slice by, e.g. `labels.scope`, `labels."service_id"`.
+5. Chart the metric in **Cloud Monitoring** or attach an alerting policy (e.g. p99 latency > 500 ms).
+
+---
+
+## 4. Local Setup (Development)
 
 ### Prerequisites
 
@@ -217,7 +302,7 @@ npm run build
 
 ---
 
-## 4. Additional Resources
+## 5. Additional Resources
 
 - **Package**: `@logickernel/logger` on npm.
 - **License**: MIT (see `LICENSE` in this repository).
