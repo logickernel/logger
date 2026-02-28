@@ -32,7 +32,7 @@ log.warning("disk space low", { used: "92%", mount: "/data" });
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
 - **Structured context**: Pass a plain object as the second argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
 - **Scope**: `logger("name")` attaches a `scope` label to every entry, great for filtering by component.
-- **Per-call labels**: Pass a third argument to attach GCP labels to a single entry (e.g. `traceId`, `userId`).
+- **Per-call labels**: Pass a third argument to attach GCP labels to a single entry (e.g. `provider`, `region`, `method`).
 
 ---
 
@@ -63,7 +63,7 @@ const apiLog = logger("api");
 apiLog.info("request handled", { method: "GET", status: 200 });
 
 // Per-call labels — merged with scope and env labels for that entry only
-apiLog.info("request handled", { method: "GET", status: 200 }, { traceId: "abc-123" });
+apiLog.info("request handled", { ms: 42, status: 200 }, { method: "GET", route: "/users" });
 ```
 
 `logger(scope?)` returns a `Logger` instance. Call it once per module or service boundary. The backend (GCP or console) is chosen once at module load:
@@ -122,8 +122,8 @@ log.info("request complete", { method: "GET", path: "/api/users", status: 200, m
 Pass a `Record<string, string>` as the third argument to attach labels to a single entry (GCP only). They are merged with env labels and scope, with per-call values taking precedence:
 
 ```ts
-log.info("payment processed", { amount: 99 }, { traceId: "t-123", userId: "u-42" });
-// GCP entry: labels = { ...envLabels, scope: "...", traceId: "t-123", userId: "u-42" }
+log.info("payment processed", { amount: 99, orderId: "o-4421" }, { provider: "stripe", currency: "usd" });
+// GCP entry: labels = { ...envLabels, scope: "...", provider: "stripe", currency: "usd" }
 ```
 
 ### Console format
