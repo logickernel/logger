@@ -45,8 +45,8 @@ function consoleLine(emoji: string, message: string, payload?: Record<string, un
   const d = new Date();
   const ts = d.toLocaleString("sv-SE") + "." + String(d.getMilliseconds()).padStart(3, "0");
   const scopePart = scope ? `(${scope}) ` : "";
-  const suffix = payload ? "\n" + JSON.stringify(payload, null, 2).replace(/^/gm, "    ") : "";
-  return `${emoji} ${ts} ${scopePart}${message}${suffix}`;
+  const suffix = payload ? "\n\x1b[90m" + JSON.stringify(payload, null, 2).replace(/^/gm, "    ") + "\x1b[0m" : "";
+  return `${emoji} \x1b[90m${ts}\x1b[0m ${scopePart}${message}${suffix}`;
 }
 
 // Plain console line: "[(scope) ]{message}[ {payload}]"
