@@ -123,27 +123,27 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable"));
   });
 
-  it("debug inlines payload as spaced JSON", async () => {
+  it("debug shows payload on new indented line", async () => {
     const log = await freshLogger();
     log.debug("user logged in", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('user logged in { "userId": "123", "action": "login" }')
+      expect.stringContaining('user logged in\n  {\n    "userId": "123",\n    "action": "login"\n  }')
     );
   });
 
-  it("info inlines payload as spaced JSON", async () => {
+  it("info shows payload on new indented line", async () => {
     const log = await freshLogger();
     log.info("request handled", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request handled { "method": "GET", "status": 200 }')
+      expect.stringContaining('request handled\n  {\n    "method": "GET",\n    "status": 200\n  }')
     );
   });
 
-  it("error inlines payload as spaced JSON", async () => {
+  it("error shows payload on new indented line", async () => {
     const log = await freshLogger();
     log.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request failed { "method": "POST", "status": 500 }')
+      expect.stringContaining('request failed\n  {\n    "method": "POST",\n    "status": 500\n  }')
     );
   });
 

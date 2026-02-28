@@ -40,12 +40,12 @@ const gcpLog = USE_GCP ? (() => {
   }
 })() : null;
 
-// Formats a pretty console log line: "{emoji} {local timestamp} [(scope) ]{message}[ {payload}]"
+// Formats a pretty console log line: "{emoji} {local timestamp} [(scope) ]{message}[\n  {payload}]"
 function consoleLine(emoji: string, message: string, payload?: Record<string, unknown>, scope?: string): string {
   const d = new Date();
   const ts = d.toLocaleString("sv-SE") + "." + String(d.getMilliseconds()).padStart(3, "0");
   const scopePart = scope ? `(${scope}) ` : "";
-  const suffix = payload ? " " + JSON.stringify(payload, null, 2).replace(/\n\s*/g, " ") : "";
+  const suffix = payload ? "\n" + JSON.stringify(payload, null, 2).replace(/^/gm, "  ") : "";
   return `${emoji} ${ts} ${scopePart}${message}${suffix}`;
 }
 
