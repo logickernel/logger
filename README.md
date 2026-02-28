@@ -85,16 +85,16 @@ log.info(message: string, payload?: Record<string, unknown>, labels?: Record<str
 
 ### Severity methods
 
-| Method | GCP severity | Console emoji |
-|---|---|---|
-| `debug` | `DEBUG` | 🐞 |
-| `info` | `INFO` | ⚪️ |
-| `notice` | `NOTICE` | 🔵 |
-| `warning` | `WARNING` | 🟡 |
-| `error` | `ERROR` | 🔴 |
-| `critical` | `CRITICAL` | ⛔️ |
-| `alert` | `ALERT` | ❗️ |
-| `emergency` | `EMERGENCY` | 🚨 |
+| Method | GCP severity | Console emoji | When to use |
+|---|---|---|---|
+| `debug` | `DEBUG` | 🐞 | Debug or trace information |
+| `info` | `INFO` | ⚪️ | Routine information, such as ongoing status or performance |
+| `notice` | `NOTICE` | 🔵 | Normal but significant events, such as start up, shut down, or a configuration change |
+| `warning` | `WARNING` | 🟡 | Warning events that might cause problems |
+| `error` | `ERROR` | 🔴 | Error events that are likely to cause problems |
+| `critical` | `CRITICAL` | ⛔️ | Critical events that cause more severe problems or outages |
+| `alert` | `ALERT` | ❗️ | A person must take an action immediately |
+| `emergency` | `EMERGENCY` | 🚨 | One or more systems are unusable |
 
 ### Scope
 
