@@ -127,7 +127,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.debug("user logged in", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('user logged in\n\x1b[2m    {\n      "userId": "123",\n      "action": "login"\n    }\x1b[0m')
+      expect.stringContaining('user logged in\n\x1b[38;5;66m    {\n      "userId": "123",\n      "action": "login"\n    }\x1b[0m')
     );
   });
 
@@ -135,7 +135,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.info("request handled", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request handled\n\x1b[2m    {\n      "method": "GET",\n      "status": 200\n    }\x1b[0m')
+      expect.stringContaining('request handled\n\x1b[38;5;66m    {\n      "method": "GET",\n      "status": 200\n    }\x1b[0m')
     );
   });
 
@@ -143,7 +143,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request failed\n\x1b[2m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
+      expect.stringContaining('request failed\n\x1b[38;5;66m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
     );
   });
 
