@@ -1,6 +1,6 @@
 ## @logickernel/logger
 
-Lightweight Node.js logger that automatically routes logs to **Google Cloud Logging** (when available) or the **local console**. Designed for services and tools where you want structured logs in GCP without wiring up a full logging stack.
+Production-ready Node.js logger with intelligent backend routing and structured logging. Automatically detects GCP environments and routes logs to **Google Cloud Logging** with proper severities and queryable `jsonPayload`, or falls back to the **local console** for development. Features the full GCP severity ladder, scoped logging, per-entry labels, and dual-backend support—enabling log-based metrics and dashboards without additional infrastructure.
 
 ```ts
 import { logger } from "@logickernel/logger";

@@ -101,7 +101,7 @@ describe("GCP backend integration — labels", () => {
   const savedEnv: Record<string, string | undefined> = {};
 
   beforeAll(() => {
-    for (const k of ["GCP_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE_ID", "VERSION"])
+    for (const k of ["GCP_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE", "VERSION"])
       savedEnv[k] = process.env[k];
     process.env.GCP_PROJECT   = PROJECT;
     process.env.LOGGER_NAME   = LOG_NAME;
@@ -117,7 +117,7 @@ describe("GCP backend integration — labels", () => {
 
   beforeEach(() => {
     delete process.env.ENVIRONMENT;
-    delete process.env.SERVICE_ID;
+    delete process.env.SERVICE;
     delete process.env.VERSION;
   });
 
@@ -140,15 +140,15 @@ describe("GCP backend integration — labels", () => {
   it("attaches environment label",
     () => labelTest({ ENVIRONMENT: "staging" }, { environment: "staging" }), 60_000);
 
-  it("attaches service_id label",
-    () => labelTest({ SERVICE_ID: "my-service" }, { service_id: "my-service" }), 60_000);
+  it("attaches service label",
+    () => labelTest({ SERVICE: "my-service" }, { service: "my-service" }), 60_000);
 
   it("attaches version label",
     () => labelTest({ VERSION: "1.2.3" }, { version: "1.2.3" }), 60_000);
 
   it("attaches all three labels together", () => labelTest(
-    { ENVIRONMENT: "production", SERVICE_ID: "my-service", VERSION: "1.2.3" },
-    { environment: "production", service_id: "my-service", version: "1.2.3" },
+    { ENVIRONMENT: "production", SERVICE: "my-service", VERSION: "1.2.3" },
+    { environment: "production", service: "my-service", version: "1.2.3" },
   ), 60_000);
 
   it("attaches scope label", async () => {

@@ -27,7 +27,7 @@ const noop = (): void => {};
 
 const envLabels: Record<string, string> = {};
 if (process.env.ENVIRONMENT) envLabels.environment = process.env.ENVIRONMENT;
-if (process.env.SERVICE_ID)  envLabels.service_id  = process.env.SERVICE_ID;
+if (process.env.SERVICE)     envLabels.service      = process.env.SERVICE;
 if (process.env.VERSION)     envLabels.version      = process.env.VERSION;
 
 // GCP Log singleton — shared across all logger() calls.

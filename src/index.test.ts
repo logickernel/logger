@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import type { Logger } from "./index.js";
 
-type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE_ID" | "VERSION";
-const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE_ID", "VERSION"];
+type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE" | "VERSION";
+const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE", "VERSION"];
 
 function snapshotEnv(): Record<EnvKey, string | undefined> {
   return {
@@ -10,7 +10,7 @@ function snapshotEnv(): Record<EnvKey, string | undefined> {
     LOGGER_TARGET: process.env.LOGGER_TARGET,
     LOGGER_CONSOLE_FORMAT: process.env.LOGGER_CONSOLE_FORMAT,
     ENVIRONMENT: process.env.ENVIRONMENT,
-    SERVICE_ID: process.env.SERVICE_ID,
+    SERVICE: process.env.SERVICE,
     VERSION: process.env.VERSION,
   };
 }
@@ -197,7 +197,7 @@ describe("logger (multi-backend: gcp,console)", () => {
       LOGGER_TARGET: "gcp,console",
       LOGGER_CONSOLE_FORMAT: undefined,
       ENVIRONMENT: undefined,
-      SERVICE_ID: undefined,
+      SERVICE: undefined,
       VERSION: undefined,
     });
     vi.spyOn(console, "log").mockImplementation(() => {});
@@ -258,7 +258,7 @@ describe("logger (GCP backend) — labels", () => {
       LOGGER_TARGET: undefined,
       LOGGER_CONSOLE_FORMAT: undefined,
       ENVIRONMENT: undefined,
-      SERVICE_ID: undefined,
+      SERVICE: undefined,
       VERSION: undefined,
     });
   });
@@ -273,24 +273,24 @@ describe("logger (GCP backend) — labels", () => {
     restoreEnv(originalEnv);
   });
 
-  it("attaches all labels when ENVIRONMENT, SERVICE_ID, and VERSION are set", async () => {
+  it("attaches all labels when ENVIRONMENT, SERVICE, and VERSION are set", async () => {
     process.env.ENVIRONMENT = "production";
-    process.env.SERVICE_ID  = "my-service";
+    process.env.SERVICE  = "my-service";
     process.env.VERSION     = "1.2.3";
     const log = await freshLogger();
     log.info("hello");
     expect(mockEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ labels: { environment: "production", service_id: "my-service", version: "1.2.3" } }),
+      expect.objectContaining({ labels: { environment: "production", service: "my-service", version: "1.2.3" } }),
       expect.anything(),
     );
   });
 
   it("attaches only present labels when some vars are unset", async () => {
-    process.env.SERVICE_ID = "my-service";
+    process.env.SERVICE = "my-service";
     const log = await freshLogger();
     log.info("hello");
     const [[meta]] = mockEntry.mock.calls;
-    expect(meta.labels).toEqual({ service_id: "my-service" });
+    expect(meta.labels).toEqual({ service: "my-service" });
   });
 
   it("omits labels entirely when no label vars are set", async () => {

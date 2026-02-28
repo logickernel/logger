@@ -1,6 +1,21 @@
 {
   "name": "@logickernel/logger",
   "version": "0.10.5",
+  "description": "Production-ready Node.js logger with intelligent backend routing and structured logging. Automatically detects GCP environments and routes logs to Google Cloud Logging with proper severities and queryable jsonPayload, or falls back to the local console for development.",
+  "keywords": [
+    "logger",
+    "logging",
+    "gcp",
+    "google-cloud",
+    "google-cloud-logging",
+    "structured-logging",
+    "cloud-logging",
+    "nodejs",
+    "typescript",
+    "observability",
+    "telemetry",
+    "log-based-metrics"
+  ],
   "type": "module",
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -15,6 +30,9 @@
   "files": [
     "dist"
   ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -24,6 +42,15 @@
     "test:integration": "vitest run src/index.integration.test.ts",
     "test:watch": "vitest"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/logickernel/logger.git"
+  },
+  "homepage": "https://github.com/logickernel/logger#readme",
+  "bugs": {
+    "url": "https://github.com/logickernel/logger/issues"
+  },
+  "license": "MIT",
   "dependencies": {
     "@google-cloud/logging": "^11"
   },
