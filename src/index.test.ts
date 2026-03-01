@@ -76,7 +76,9 @@ describe("logger (console backend)", () => {
   const line = (emoji: string, msg: string, color?: "yellow" | "red") => {
     const colorCode = color === "yellow" ? "\\x1b\\[33m" : color === "red" ? "\\x1b\\[31m" : "";
     const reset = colorCode ? "\\x1b\\[0m" : "";
-    return expect.stringMatching(new RegExp(`^${emoji} \\x1b\\[90m${ts.source}\\x1b\\[0m  ${colorCode}${escapeRe(msg)}${reset}$`));
+    const tsColor = colorCode || "\\x1b\\[90m";
+    const tsReset = colorCode ? reset : "\\x1b\\[0m";
+    return expect.stringMatching(new RegExp(`^${emoji} ${tsColor}${ts.source}${tsReset}  ${colorCode}${escapeRe(msg)}${reset}$`));
   };
 
   it("debug logs with 🐞 and timestamp", async () => {
