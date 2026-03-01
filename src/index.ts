@@ -40,13 +40,20 @@ const gcpLog = USE_GCP ? (() => {
   }
 })() : null;
 
+const ANSI_RED = "\x1b[31m";
+const ANSI_YELLOW = "\x1b[33m";
+const ANSI_RESET = "\x1b[0m";
+
 // Formats a pretty console log line: "{emoji} {local timestamp} [(scope) ]{message}[\n  {payload}]"
-function consoleLine(emoji: string, message: string, payload?: Record<string, unknown>, scope?: string): string {
+// Optional color wraps scope+message (used for warning=yellow, error+=red when pretty format is on).
+function consoleLine(emoji: string, message: string, payload?: Record<string, unknown>, scope?: string, color?: string): string {
   const d = new Date();
   const ts = d.toLocaleString("sv-SE") + "." + String(d.getMilliseconds()).padStart(3, "0");
   const scopePart = scope ? `(${scope}) ` : "";
-  const suffix = payload ? "\n\x1b[38;5;66m" + JSON.stringify(payload, null, 2).replace(/^/gm, "    ") + "\x1b[0m" : "";
-  return `${emoji} \x1b[90m${ts}\x1b[0m  ${scopePart}${message}${suffix}`;
+  const suffix = payload ? "\n\x1b[38;5;66m" + JSON.stringify(payload, null, 2).replace(/^/gm, "    ") + ANSI_RESET : "";
+  const body = scopePart + message;
+  const coloredBody = color ? color + body + ANSI_RESET : body;
+  return `${emoji} \x1b[90m${ts}\x1b[0m  ${coloredBody}${suffix}`;
 }
 
 // Plain console line: "[(scope) ]{message}[ {payload}]"
@@ -98,11 +105,11 @@ export function logger(scope?: string): Logger {
           debug:     (message, payload): void => { console.log(consoleLine("🐞", message, payload, scope)); },
           info:      (message, payload): void => { console.log(consoleLine("⚪️", message, payload, scope)); },
           notice:    (message, payload): void => { console.log(consoleLine("🔵", message, payload, scope)); },
-          warning:   (message, payload): void => { console.log(consoleLine("🟡", message, payload, scope)); },
-          error:     (message, payload): void => { console.log(consoleLine("🔴", message, payload, scope)); },
-          critical:  (message, payload): void => { console.log(consoleLine("⛔️", message, payload, scope)); },
-          alert:     (message, payload): void => { console.log(consoleLine("❗️", message, payload, scope)); },
-          emergency: (message, payload): void => { console.log(consoleLine("🚨", message, payload, scope)); },
+          warning:   (message, payload): void => { console.log(consoleLine("🟡", message, payload, scope, ANSI_YELLOW)); },
+          error:     (message, payload): void => { console.log(consoleLine("🔴", message, payload, scope, ANSI_RED)); },
+          critical:  (message, payload): void => { console.log(consoleLine("⛔️", message, payload, scope, ANSI_RED)); },
+          alert:     (message, payload): void => { console.log(consoleLine("❗️", message, payload, scope, ANSI_RED)); },
+          emergency: (message, payload): void => { console.log(consoleLine("🚨", message, payload, scope, ANSI_RED)); },
         }
       : {
           debug:     (message, payload): void => { console.log(consolePlain(message, payload, scope)); },

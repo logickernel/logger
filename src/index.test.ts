@@ -72,8 +72,12 @@ describe("logger (console backend)", () => {
 
   // Timestamp pattern: "YYYY-MM-DD HH:MM:SS.mmm"
   const ts = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/;
-  const line = (emoji: string, msg: string) =>
-    expect.stringMatching(new RegExp(`^${emoji} \\x1b\\[90m${ts.source}\\x1b\\[0m  ${msg}$`));
+  const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const line = (emoji: string, msg: string, color?: "yellow" | "red") => {
+    const colorCode = color === "yellow" ? "\\x1b\\[33m" : color === "red" ? "\\x1b\\[31m" : "";
+    const reset = colorCode ? "\\x1b\\[0m" : "";
+    return expect.stringMatching(new RegExp(`^${emoji} \\x1b\\[90m${ts.source}\\x1b\\[0m  ${colorCode}${escapeRe(msg)}${reset}$`));
+  };
 
   it("debug logs with 🐞 and timestamp", async () => {
     const log = await freshLogger();
@@ -93,34 +97,34 @@ describe("logger (console backend)", () => {
     expect(console.log).toHaveBeenCalledWith(line("🔵", "normal but significant"));
   });
 
-  it("warning logs with 🟡 and timestamp", async () => {
+  it("warning logs with 🟡 and timestamp (yellow message)", async () => {
     const log = await freshLogger();
     log.warning("disk space low");
-    expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low"));
+    expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low", "yellow"));
   });
 
-  it("error logs with 🔴 and timestamp", async () => {
+  it("error logs with 🔴 and timestamp (red message)", async () => {
     const log = await freshLogger();
     log.error("something broke");
-    expect(console.log).toHaveBeenCalledWith(line("🔴", "something broke"));
+    expect(console.log).toHaveBeenCalledWith(line("🔴", "something broke", "red"));
   });
 
-  it("critical logs with ⛔️ and timestamp", async () => {
+  it("critical logs with ⛔️ and timestamp (red message)", async () => {
     const log = await freshLogger();
     log.critical("primary db down");
-    expect(console.log).toHaveBeenCalledWith(line("⛔️", "primary db down"));
+    expect(console.log).toHaveBeenCalledWith(line("⛔️", "primary db down", "red"));
   });
 
-  it("alert logs with ❗️ and timestamp", async () => {
+  it("alert logs with ❗️ and timestamp (red message)", async () => {
     const log = await freshLogger();
     log.alert("data loss imminent");
-    expect(console.log).toHaveBeenCalledWith(line("❗️", "data loss imminent"));
+    expect(console.log).toHaveBeenCalledWith(line("❗️", "data loss imminent", "red"));
   });
 
-  it("emergency logs with 🚨 and timestamp", async () => {
+  it("emergency logs with 🚨 and timestamp (red message)", async () => {
     const log = await freshLogger();
     log.emergency("system unusable");
-    expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable"));
+    expect(console.log).toHaveBeenCalledWith(line("🚨", "system unusable", "red"));
   });
 
   it("debug shows payload on new indented line", async () => {
@@ -143,7 +147,7 @@ describe("logger (console backend)", () => {
     const log = await freshLogger();
     log.error("request failed", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request failed\n\x1b[38;5;66m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
+      expect.stringContaining('\x1b[31mrequest failed\x1b[0m\n\x1b[38;5;66m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
     );
   });
 
