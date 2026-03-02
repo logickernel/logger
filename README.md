@@ -9,7 +9,7 @@ const log = logger("api"); // optional scope label on every entry
 
 log.notice("server started", { startupMs: 432 });
 log.info("user login", { userId: "123" });
-log.warning("disk space low", { usedPct: 92 }, { mount: "/data" });
+log.warning("disk space low", { usedPct: 92, mount: "/data" });
 ```
 
 > Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -54,7 +54,7 @@ const log = logger();
 
 log.notice("server started");
 log.debug("cache miss");
-log.warning("disk space low", { usedPct: 92 }, { mount: "/data" });
+log.warning("disk space low", { usedPct: 92, mount: "/data" });
 log.error("request failed", { status: 503, ms: 1250 }, { method: "POST", route: "/api/orders" });
 log.critical("primary db unreachable", { retries: 3 }, { host: "db-1" });
 
@@ -141,7 +141,7 @@ When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](ht
     }
 🟡 2026-02-26 13:04:22.512  disk space low
     {
-      "used": "92%",
+      "usedPct": 92,
       "mount": "/data"
     }
 ```
