@@ -1,6 +1,6 @@
 import { Logging } from "@google-cloud/logging";
 
-type LogMethod = (message: string, payload?: Record<string, unknown>, labels?: Record<string, string>) => void;
+type LogMethod = (message: string, event?: string, payload?: Record<string, unknown>) => void;
 
 export interface Logger {
   debug: LogMethod;
@@ -44,24 +44,26 @@ const ANSI_RED = "\x1b[31m";
 const ANSI_YELLOW = "\x1b[33m";
 const ANSI_RESET = "\x1b[0m";
 
-// Formats a pretty console log line: "{emoji} {local timestamp} [(scope) ]{message}[\n  {payload}]"
-// Optional color wraps timestamp and scope+message (used for warning=yellow, error+=red when pretty format is on).
-function consoleLine(emoji: string, message: string, payload?: Record<string, unknown>, scope?: string, color?: string): string {
+// Formats a pretty console log line: "{emoji} {local timestamp} [(scope) ][[event] ]{message}[\n  {payload}]"
+// Optional color wraps timestamp and scope+event+message (used for warning=yellow, error+=red when pretty format is on).
+function consoleLine(emoji: string, message: string, payload?: Record<string, unknown>, scope?: string, event?: string, color?: string): string {
   const d = new Date();
   const ts = d.toLocaleString("sv-SE") + "." + String(d.getMilliseconds()).padStart(3, "0");
   const scopePart = scope ? `(${scope}) ` : "";
+  const eventPart = event ? `[${event}] ` : "";
   const suffix = payload ? "\n\x1b[38;5;66m" + JSON.stringify(payload, null, 2).replace(/^/gm, "    ") + ANSI_RESET : "";
   const tsPart = color ? color + ts + ANSI_RESET : "\x1b[90m" + ts + ANSI_RESET;
-  const body = scopePart + message;
+  const body = scopePart + eventPart + message;
   const coloredBody = color ? color + body + ANSI_RESET : body;
   return `${emoji} ${tsPart}  ${coloredBody}${suffix}`;
 }
 
-// Plain console line: "[(scope) ]{message}[ {payload}]"
-function consolePlain(message: string, payload?: Record<string, unknown>, scope?: string): string {
+// Plain console line: "[(scope) ][[event] ]{message}[ {payload}]"
+function consolePlain(message: string, payload?: Record<string, unknown>, scope?: string, event?: string): string {
   const scopePart = scope ? `(${scope}) ` : "";
+  const eventPart = event ? `[${event}] ` : "";
   const suffix = payload ? " " + JSON.stringify(payload, null, 2).replace(/\n\s*/g, " ") : "";
-  return `${scopePart}${message}${suffix}`;
+  return `${scopePart}${eventPart}${message}${suffix}`;
 }
 
 export function logger(scope?: string): Logger {
@@ -70,13 +72,13 @@ export function logger(scope?: string): Logger {
     ...(scope ? { scope } : {}),
   };
 
-  function resolveLabels(callLabels?: Record<string, string>): Record<string, string> | undefined {
-    const merged = { ...instanceLabels, ...callLabels };
+  function resolveLabels(event?: string): Record<string, string> | undefined {
+    const merged = { ...instanceLabels, ...(event ? { event } : {}) };
     return Object.keys(merged).length ? merged : undefined;
   }
 
-  function gcpMeta(severity: string, callLabels?: Record<string, string>): Record<string, unknown> {
-    const labels = resolveLabels(callLabels);
+  function gcpMeta(severity: string, event?: string): Record<string, unknown> {
+    const labels = resolveLabels(event);
     return labels ? { severity, labels } : { severity };
   }
 
@@ -89,52 +91,52 @@ export function logger(scope?: string): Logger {
   if (gcpLog) {
     const g = gcpLog;
     backends.push({
-      debug:     (message, payload, labels): void => { g.write(g.entry(gcpMeta("DEBUG",     labels), gcpData(message, payload))).catch(noop); },
-      info:      (message, payload, labels): void => { g.write(g.entry(gcpMeta("INFO",      labels), gcpData(message, payload))).catch(noop); },
-      notice:    (message, payload, labels): void => { g.write(g.entry(gcpMeta("NOTICE",    labels), gcpData(message, payload))).catch(noop); },
-      warning:   (message, payload, labels): void => { g.write(g.entry(gcpMeta("WARNING",   labels), gcpData(message, payload))).catch(noop); },
-      error:     (message, payload, labels): void => { g.write(g.entry(gcpMeta("ERROR",     labels), gcpData(message, payload))).catch(noop); },
-      critical:  (message, payload, labels): void => { g.write(g.entry(gcpMeta("CRITICAL",  labels), gcpData(message, payload))).catch(noop); },
-      alert:     (message, payload, labels): void => { g.write(g.entry(gcpMeta("ALERT",     labels), gcpData(message, payload))).catch(noop); },
-      emergency: (message, payload, labels): void => { g.write(g.entry(gcpMeta("EMERGENCY", labels), gcpData(message, payload))).catch(noop); },
+      debug:     (message, event, payload): void => { g.write(g.entry(gcpMeta("DEBUG",     event), gcpData(message, payload))).catch(noop); },
+      info:      (message, event, payload): void => { g.write(g.entry(gcpMeta("INFO",      event), gcpData(message, payload))).catch(noop); },
+      notice:    (message, event, payload): void => { g.write(g.entry(gcpMeta("NOTICE",    event), gcpData(message, payload))).catch(noop); },
+      warning:   (message, event, payload): void => { g.write(g.entry(gcpMeta("WARNING",   event), gcpData(message, payload))).catch(noop); },
+      error:     (message, event, payload): void => { g.write(g.entry(gcpMeta("ERROR",     event), gcpData(message, payload))).catch(noop); },
+      critical:  (message, event, payload): void => { g.write(g.entry(gcpMeta("CRITICAL",  event), gcpData(message, payload))).catch(noop); },
+      alert:     (message, event, payload): void => { g.write(g.entry(gcpMeta("ALERT",     event), gcpData(message, payload))).catch(noop); },
+      emergency: (message, event, payload): void => { g.write(g.entry(gcpMeta("EMERGENCY", event), gcpData(message, payload))).catch(noop); },
     });
   }
 
   if (USE_CONSOLE || backends.length === 0) {
     backends.push(CONSOLE_PRETTY
       ? {
-          debug:     (message, payload): void => { console.log(consoleLine("🐞", message, payload, scope)); },
-          info:      (message, payload): void => { console.log(consoleLine("⚪️", message, payload, scope)); },
-          notice:    (message, payload): void => { console.log(consoleLine("🔵", message, payload, scope)); },
-          warning:   (message, payload): void => { console.log(consoleLine("🟡", message, payload, scope, ANSI_YELLOW)); },
-          error:     (message, payload): void => { console.log(consoleLine("🔴", message, payload, scope, ANSI_RED)); },
-          critical:  (message, payload): void => { console.log(consoleLine("⛔️", message, payload, scope, ANSI_RED)); },
-          alert:     (message, payload): void => { console.log(consoleLine("❗️", message, payload, scope, ANSI_RED)); },
-          emergency: (message, payload): void => { console.log(consoleLine("🚨", message, payload, scope, ANSI_RED)); },
+          debug:     (message, event, payload): void => { console.log(consoleLine("🐞", message, payload, scope, event)); },
+          info:      (message, event, payload): void => { console.log(consoleLine("⚪️", message, payload, scope, event)); },
+          notice:    (message, event, payload): void => { console.log(consoleLine("🔵", message, payload, scope, event)); },
+          warning:   (message, event, payload): void => { console.log(consoleLine("🟡", message, payload, scope, event, ANSI_YELLOW)); },
+          error:     (message, event, payload): void => { console.log(consoleLine("🔴", message, payload, scope, event, ANSI_RED)); },
+          critical:  (message, event, payload): void => { console.log(consoleLine("⛔️", message, payload, scope, event, ANSI_RED)); },
+          alert:     (message, event, payload): void => { console.log(consoleLine("❗️", message, payload, scope, event, ANSI_RED)); },
+          emergency: (message, event, payload): void => { console.log(consoleLine("🚨", message, payload, scope, event, ANSI_RED)); },
         }
       : {
-          debug:     (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          info:      (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          notice:    (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          warning:   (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          error:     (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          critical:  (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          alert:     (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
-          emergency: (message, payload): void => { console.log(consolePlain(message, payload, scope)); },
+          debug:     (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          info:      (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          notice:    (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          warning:   (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          error:     (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          critical:  (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          alert:     (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
+          emergency: (message, event, payload): void => { console.log(consolePlain(message, payload, scope, event)); },
         });
   }
 
   return backends.length === 1
     ? backends[0]
     : {
-        debug:     (message, payload, labels): void => { backends.forEach(b => b.debug(message, payload, labels));     },
-        info:      (message, payload, labels): void => { backends.forEach(b => b.info(message, payload, labels));      },
-        notice:    (message, payload, labels): void => { backends.forEach(b => b.notice(message, payload, labels));    },
-        warning:   (message, payload, labels): void => { backends.forEach(b => b.warning(message, payload, labels));   },
-        error:     (message, payload, labels): void => { backends.forEach(b => b.error(message, payload, labels));     },
-        critical:  (message, payload, labels): void => { backends.forEach(b => b.critical(message, payload, labels));  },
-        alert:     (message, payload, labels): void => { backends.forEach(b => b.alert(message, payload, labels));     },
-        emergency: (message, payload, labels): void => { backends.forEach(b => b.emergency(message, payload, labels)); },
+        debug:     (message, event, payload): void => { backends.forEach(b => b.debug(message, event, payload));     },
+        info:      (message, event, payload): void => { backends.forEach(b => b.info(message, event, payload));      },
+        notice:    (message, event, payload): void => { backends.forEach(b => b.notice(message, event, payload));    },
+        warning:   (message, event, payload): void => { backends.forEach(b => b.warning(message, event, payload));   },
+        error:     (message, event, payload): void => { backends.forEach(b => b.error(message, event, payload));     },
+        critical:  (message, event, payload): void => { backends.forEach(b => b.critical(message, event, payload));  },
+        alert:     (message, event, payload): void => { backends.forEach(b => b.alert(message, event, payload));     },
+        emergency: (message, event, payload): void => { backends.forEach(b => b.emergency(message, event, payload)); },
       };
 }
 
