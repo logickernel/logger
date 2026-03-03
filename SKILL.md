@@ -88,7 +88,7 @@ Use a specific, past-tense phrase. The message must be readable in a log stream 
 
 ```ts
 const log = logger("payments");
-log.info("charge processed", "charge_processed", { amount: 99.95 });
+log.info("payment accepted", "charge_processed", { amount: 99.95 });
 // GCP labels: { scope: "payments", event: "charge_processed", environment: "production" }
 ```
 
@@ -99,8 +99,8 @@ log.info("charge processed", "charge_processed", { amount: 99.95 });
 - Boolean flags: `hit`, `success`, `cached`
 
 ```ts
-log.info("query executed", "query_executed", { ms: 42, rows: 120, cached: false });
-log.warning("payment charge declined", "charge_declined", { amount: 99.95, orderId: "o-8821", code: "insufficient_funds" });
+log.info("database query returned", "query_executed", { ms: 42, rows: 120, cached: false });
+log.warning("card declined by issuing bank", "charge_declined", { amount: 99.95, orderId: "o-8821", code: "insufficient_funds" });
 ```
 
 ---
@@ -115,7 +115,7 @@ Labels on a GCP entry come from these sources, merged in this order (later wins)
 
 ```ts
 // Resulting labels: { environment: "production", service: "api", scope: "orders", event: "order_created" }
-log.info("order created", "order_created", { total: 49.99, items: 3 });
+log.info("new order placed", "order_created", { total: 49.99, items: 3 });
 ```
 
 ---
@@ -153,7 +153,7 @@ log.info("query done", "42ms", { rows: 120 }); // latency → payload as number
 log.warning("disk space low", "disk_space_low", { used: "92%", mount: "/data" }); // usedPct: 92 → payload as number
 
 // ✗ 'message' as a payload key — silently overwrites the first argument in GCP jsonPayload
-log.info("charge processed", "charge_processed", { message: "it worked", amount: 99.95 }); // message → 1st arg only
+log.info("payment accepted", "charge_processed", { message: "it worked", amount: 99.95 }); // message → 1st arg only
 
 // ✗ Logging without structured data when measurements are available
 log.info("request handled"); // missed opportunity — add event + { ms, status } to payload
@@ -182,21 +182,21 @@ const log = logger("orders");
 export async function createOrder(data: OrderInput): Promise<Order> {
   const t = Date.now();
   const order = await db.insert(data);
-  log.info("order created", "order_created", { ms: Date.now() - t, total: order.total, items: order.items.length });
+  log.info("new order placed", "order_created", { ms: Date.now() - t, total: order.total, items: order.items.length });
   return order;
 }
 
 export async function cancelOrder(id: string, reason: string): Promise<void> {
   await db.update(id, { status: "cancelled" });
-  log.notice("order cancelled", "order_cancelled", { orderId: id, reason });
+  log.notice("customer order cancelled", "order_cancelled", { orderId: id, reason });
 }
 
 export async function retryPayment(orderId: string, attempt: number): Promise<void> {
   try {
     await payment.charge(orderId);
-    log.info("payment succeeded", "payment_succeeded", { attempt, orderId, provider: "stripe" });
+    log.info("card charged successfully", "payment_succeeded", { attempt, orderId, provider: "stripe" });
   } catch (err: any) {
-    log.warning("payment failed", "payment_failed", { attempt, orderId, provider: "stripe", code: err.code });
+    log.warning("provider rejected the charge", "payment_failed", { attempt, orderId, provider: "stripe", code: err.code });
   }
 }
 ```

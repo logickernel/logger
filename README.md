@@ -8,8 +8,8 @@ import { logger } from "@logickernel/logger";
 const log = logger("api"); // optional scope label on every entry
 
 log.notice("server started");
-log.info("user login", "user_login", { userId: "123" });
-log.warning("disk space low", "disk_space_low", { usedPct: 92, mount: "/data" });
+log.info("user authenticated", "user_login", { userId: "123" });
+log.warning("disk nearing capacity", "disk_space_low", { usedPct: 92, mount: "/data" });
 ```
 
 > Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -63,14 +63,14 @@ When you need structured data or GCP metrics, add `event` and `payload` as opt-i
 ```ts
 // event identifies the type of occurrence (2nd arg)
 // payload carries measurements and context (3rd arg)
-log.info("user login", "user_login", { userId: "123" });
-log.warning("disk space low", "disk_space_low", { usedPct: 92, mount: "/data" });
-log.error("request failed", "request_failed", { status: 503, ms: 1250 });
+log.info("user authenticated", "user_login", { userId: "123" });
+log.warning("disk nearing capacity", "disk_space_low", { usedPct: 92, mount: "/data" });
+log.error("upstream returned an error", "request_failed", { status: 503, ms: 1250 });
 
 // Scoped logger — attaches scope: "payments" to every entry as a GCP label
 const paymentsLog = logger("payments");
-paymentsLog.info("charge processed", "charge_processed", { amount: 99.95 });
-paymentsLog.warning("charge failed", "charge_failed", { code: "card_declined" });
+paymentsLog.info("payment accepted", "charge_processed", { amount: 99.95 });
+paymentsLog.warning("card declined by issuing bank", "charge_failed", { code: "card_declined" });
 ```
 
 `logger(scope?)` returns a `Logger` instance. Call it once per module or service boundary. The backend (GCP or console) is chosen once at module load:
@@ -111,7 +111,7 @@ log.info(message: string, event?: string, payload?: Record<string, unknown>): vo
 
 ```ts
 const db = logger("db");
-db.warning("slow query", "query_slow", { ms: 412, rows: 5200 });
+db.warning("database response took too long", "query_slow", { ms: 412, rows: 5200 });
 // GCP entry: labels = { scope: "db", event: "query_slow" }
 ```
 
@@ -120,7 +120,7 @@ db.warning("slow query", "query_slow", { ms: 412, rows: 5200 });
 Pass a plain object as the third argument to attach structured data to a log entry:
 
 ```ts
-log.info("request complete", "request_complete", { status: 200, ms: 42 });
+log.info("HTTP request completed", "request_complete", { status: 200, ms: 42 });
 ```
 
 - **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
@@ -131,7 +131,7 @@ log.info("request complete", "request_complete", { status: 200, ms: 42 });
 Pass a `string` as the second argument to tag the entry with a machine-readable event identifier. It is stored as `labels.event` in GCP — a low-cardinality dimension like `scope`, `environment`, and `service`:
 
 ```ts
-log.info("charge processed", "charge_processed", { amount: 99.95, orderId: "o-4421" });
+log.info("payment accepted", "charge_processed", { amount: 99.95, orderId: "o-4421" });
 // GCP entry: labels = { scope: "payments", event: "charge_processed", environment: "production" }
 ```
 
@@ -143,16 +143,16 @@ log.info("charge processed", "charge_processed", { amount: 99.95, orderId: "o-44
 - Use scope for the component, event for the specific action within it — they're complementary:
   ```ts
   const log = logger("payments");
-  log.info("charge processed", "charge_processed", { amount: 99.95 });
+  log.info("payment accepted", "charge_processed", { amount: 99.95 });
   // labels: { scope: "payments", event: "charge_processed" }
   ```
 - Keep events low-cardinality. Encode variable context (provider, region, method) in the event name or move it to payload:
   ```ts
   // Good — low-cardinality event, variable data in payload
-  log.info("charge processed", "charge_processed", { amount: 99.95, provider: "stripe" });
+  log.info("payment accepted", "charge_processed", { amount: 99.95, provider: "stripe" });
 
   // Also fine — provider encoded in event name
-  log.info("charge processed", "stripe_charge_processed", { amount: 99.95 });
+  log.info("payment accepted", "stripe_charge_processed", { amount: 99.95 });
   ```
 
 ### Console format
@@ -164,11 +164,11 @@ When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](ht
 ```
 🔵 2026-02-26 13:04:22.120  server started
 🐞 2026-02-26 13:04:22.341  (api) cache miss
-🟡 2026-02-26 13:04:22.512  (payments) [charge_failed] charge failed
+🟡 2026-02-26 13:04:22.512  (payments) [charge_failed] card declined by issuing bank
     {
       "code": "card_declined"
     }
-⚪️ 2026-02-26 13:04:22.701  [user_login] user logged in
+⚪️ 2026-02-26 13:04:22.701  [user_login] user authenticated
     {
       "userId": "u-9182"
     }
@@ -249,10 +249,10 @@ The three arguments serve distinct roles and should not be mixed:
 **Put measurements and context in payload — always as numbers, not strings:**
 
 ```ts
-log.info("request handled",    "request_handled",   { ms: 42, status: 200, bytes: 1024 });
-log.info("cache result",       "cache_hit",          { ttl: 300 });
-log.warning("slow query",      "query_slow",         { ms: 850, rowsScanned: 12000 });
-log.info("batch job complete", "batch_complete",     { processed: 142, failed: 3, durationMs: 5400 });
+log.info("HTTP request completed",           "request_handled", { ms: 42, status: 200, bytes: 1024 });
+log.info("served from cache",               "cache_hit",       { ttl: 300 });
+log.warning("database response took too long", "query_slow",   { ms: 850, rowsScanned: 12000 });
+log.info("batch run finished",              "batch_complete",  { processed: 142, failed: 3, durationMs: 5400 });
 ```
 
 Measurements must be numbers — `usedPct: 92`, not `used: "92%"`. Strings cannot be extracted as metric values in Cloud Monitoring.
@@ -262,8 +262,8 @@ Measurements must be numbers — `usedPct: 92`, not `used: "92%"`. Strings canno
 ```ts
 const log = logger("payments");
 
-log.info("charge processed", "charge_processed", { amount: 99.95, provider: "stripe" });
-log.warning("charge failed",  "charge_failed",   { code: "card_declined", provider: "stripe" });
+log.info("payment accepted",            "charge_processed", { amount: 99.95, provider: "stripe" });
+log.warning("card declined by issuing bank", "charge_failed", { code: "card_declined", provider: "stripe" });
 ```
 
 ### Instantiate once per module or service boundary
@@ -275,7 +275,7 @@ Create the logger at module scope, not inside request handlers or loops. The fac
 const log = logger("orders");
 
 export async function createOrder(data: OrderData) {
-  log.info("order created", "order_created", { orderId: data.id, total: data.total });
+  log.info("new order placed", "order_created", { orderId: data.id, total: data.total });
 }
 
 // Avoid — recreated on every call
