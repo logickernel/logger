@@ -29,12 +29,13 @@ const log = logger("payments"); // scope is a GCP label attached to every entry
 All eight methods share the same signature:
 
 ```ts
-log.info(message: string, event?: string, payload?: Record<string, unknown>): void
+log.info(message: string, event?: string, payload?: Record<string, unknown>, labels?: Record<string, string>): void
 ```
 
 - `message` — human-readable description of what happened. Required.
 - `event` — machine-readable snake_case event identifier. Optional. Stored as `labels.event` in GCP; shown in `[brackets]` on the console.
 - `payload` — measurements and event data. Optional. Becomes `jsonPayload` in GCP.
+- `labels` — extra GCP labels merged per-call, taking precedence over all calculated labels (env, scope, event). Must be low-cardinality strings. Ignored by the console backend.
 
 ---
 
@@ -71,13 +72,13 @@ Use a specific, past-tense phrase. The message must be readable in a log stream 
 
 `@logickernel/logger` is a **telemetry tool**. Log entries are data points for Cloud Monitoring dashboards and log-based metrics, not just text records.
 
-| | `message` (1st arg) | `event` (2nd arg) | `payload` (3rd arg) |
-|---|---|---|---|
-| Type | `string` | `string` | `Record<string, unknown>` |
-| Purpose | Human description | Machine-readable event type | Measurements and context |
-| GCP storage | Entry message | `labels.event` — low-cardinality dimension | `jsonPayload` fields — indexed, queryable by field |
-| Cardinality | N/A | **Must be low** — bounded enum of known event types | Can be high |
-| Metric use | Human readability | Dimension to group and filter metrics by | Field values extracted as data points (e.g. latency, count) |
+| | `message` (1st arg) | `event` (2nd arg) | `payload` (3rd arg) | `labels` (4th arg) |
+|---|---|---|---|---|
+| Type | `string` | `string` | `Record<string, unknown>` | `Record<string, string>` |
+| Purpose | Human description | Machine-readable event type | Measurements and context | Per-call GCP label overrides |
+| GCP storage | Entry message | `labels.event` — low-cardinality dimension | `jsonPayload` fields — indexed, queryable by field | Merged into entry labels, wins over env/scope/event |
+| Cardinality | N/A | **Must be low** — bounded enum of known event types | Can be high | **Must be low** |
+| Metric use | Human readability | Dimension to group and filter metrics by | Field values extracted as data points (e.g. latency, count) | Additional dimensions not known at instantiation time |
 
 ### Event naming conventions
 

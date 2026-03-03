@@ -1,6 +1,6 @@
 import { Logging } from "@google-cloud/logging";
 
-type LogMethod = (message: string, event?: string, payload?: Record<string, unknown>) => void;
+type LogMethod = (message: string, event?: string, payload?: Record<string, unknown>, labels?: Record<string, string>) => void;
 
 export interface Logger {
   debug: LogMethod;
@@ -72,13 +72,13 @@ export function logger(scope?: string): Logger {
     ...(scope ? { scope } : {}),
   };
 
-  function resolveLabels(event?: string): Record<string, string> | undefined {
-    const merged = { ...instanceLabels, ...(event ? { event } : {}) };
+  function resolveLabels(event?: string, extraLabels?: Record<string, string>): Record<string, string> | undefined {
+    const merged = { ...instanceLabels, ...(event ? { event } : {}), ...extraLabels };
     return Object.keys(merged).length ? merged : undefined;
   }
 
-  function gcpMeta(severity: string, event?: string): Record<string, unknown> {
-    const labels = resolveLabels(event);
+  function gcpMeta(severity: string, event?: string, extraLabels?: Record<string, string>): Record<string, unknown> {
+    const labels = resolveLabels(event, extraLabels);
     return labels ? { severity, labels } : { severity };
   }
 
@@ -91,14 +91,14 @@ export function logger(scope?: string): Logger {
   if (gcpLog) {
     const g = gcpLog;
     backends.push({
-      debug:     (message, event, payload): void => { g.write(g.entry(gcpMeta("DEBUG",     event), gcpData(message, payload))).catch(noop); },
-      info:      (message, event, payload): void => { g.write(g.entry(gcpMeta("INFO",      event), gcpData(message, payload))).catch(noop); },
-      notice:    (message, event, payload): void => { g.write(g.entry(gcpMeta("NOTICE",    event), gcpData(message, payload))).catch(noop); },
-      warning:   (message, event, payload): void => { g.write(g.entry(gcpMeta("WARNING",   event), gcpData(message, payload))).catch(noop); },
-      error:     (message, event, payload): void => { g.write(g.entry(gcpMeta("ERROR",     event), gcpData(message, payload))).catch(noop); },
-      critical:  (message, event, payload): void => { g.write(g.entry(gcpMeta("CRITICAL",  event), gcpData(message, payload))).catch(noop); },
-      alert:     (message, event, payload): void => { g.write(g.entry(gcpMeta("ALERT",     event), gcpData(message, payload))).catch(noop); },
-      emergency: (message, event, payload): void => { g.write(g.entry(gcpMeta("EMERGENCY", event), gcpData(message, payload))).catch(noop); },
+      debug:     (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("DEBUG",     event, labels), gcpData(message, payload))).catch(noop); },
+      info:      (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("INFO",      event, labels), gcpData(message, payload))).catch(noop); },
+      notice:    (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("NOTICE",    event, labels), gcpData(message, payload))).catch(noop); },
+      warning:   (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("WARNING",   event, labels), gcpData(message, payload))).catch(noop); },
+      error:     (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("ERROR",     event, labels), gcpData(message, payload))).catch(noop); },
+      critical:  (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("CRITICAL",  event, labels), gcpData(message, payload))).catch(noop); },
+      alert:     (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("ALERT",     event, labels), gcpData(message, payload))).catch(noop); },
+      emergency: (message, event, payload, labels): void => { g.write(g.entry(gcpMeta("EMERGENCY", event, labels), gcpData(message, payload))).catch(noop); },
     });
   }
 
@@ -129,14 +129,14 @@ export function logger(scope?: string): Logger {
   return backends.length === 1
     ? backends[0]
     : {
-        debug:     (message, event, payload): void => { backends.forEach(b => b.debug(message, event, payload));     },
-        info:      (message, event, payload): void => { backends.forEach(b => b.info(message, event, payload));      },
-        notice:    (message, event, payload): void => { backends.forEach(b => b.notice(message, event, payload));    },
-        warning:   (message, event, payload): void => { backends.forEach(b => b.warning(message, event, payload));   },
-        error:     (message, event, payload): void => { backends.forEach(b => b.error(message, event, payload));     },
-        critical:  (message, event, payload): void => { backends.forEach(b => b.critical(message, event, payload));  },
-        alert:     (message, event, payload): void => { backends.forEach(b => b.alert(message, event, payload));     },
-        emergency: (message, event, payload): void => { backends.forEach(b => b.emergency(message, event, payload)); },
+        debug:     (message, event, payload, labels): void => { backends.forEach(b => b.debug(message, event, payload, labels));     },
+        info:      (message, event, payload, labels): void => { backends.forEach(b => b.info(message, event, payload, labels));      },
+        notice:    (message, event, payload, labels): void => { backends.forEach(b => b.notice(message, event, payload, labels));    },
+        warning:   (message, event, payload, labels): void => { backends.forEach(b => b.warning(message, event, payload, labels));   },
+        error:     (message, event, payload, labels): void => { backends.forEach(b => b.error(message, event, payload, labels));     },
+        critical:  (message, event, payload, labels): void => { backends.forEach(b => b.critical(message, event, payload, labels));  },
+        alert:     (message, event, payload, labels): void => { backends.forEach(b => b.alert(message, event, payload, labels));     },
+        emergency: (message, event, payload, labels): void => { backends.forEach(b => b.emergency(message, event, payload, labels)); },
       };
 }
 

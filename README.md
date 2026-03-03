@@ -85,12 +85,13 @@ If GCP is selected but the Cloud Logging client fails to initialize (e.g. missin
 All eight severity methods share the same signature:
 
 ```ts
-log.info(message: string, event?: string, payload?: Record<string, unknown>): void
+log.info(message: string, event?: string, payload?: Record<string, unknown>, labels?: Record<string, string>): void
 ```
 
 - **`message`** — required string. Human-readable description of what happened.
 - **`event`** — optional snake_case identifier for the event type. Stored as `labels.event` in GCP; shown in brackets on the console.
 - **`payload`** — optional plain object. Becomes `jsonPayload` in GCP (fields indexed and queryable); inlined as compact JSON on the console.
+- **`labels`** — optional extra GCP labels merged on top of the instance labels. Per-call labels take precedence over env labels, scope, and event. Must be low-cardinality strings. Ignored by the console backend.
 
 ### Severity methods
 
