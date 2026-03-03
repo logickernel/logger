@@ -78,6 +78,8 @@ paymentsLog.warning("charge failed", "charge_failed", { code: "card_declined" })
 - **GCP backend** is used when `GCP_PROJECT` is set.
 - Otherwise, the **console backend** is used.
 
+If GCP is selected but the Cloud Logging client fails to initialize (e.g. missing or invalid credentials), the logger falls back to the console backend so your app keeps logging.
+
 ### Method signature
 
 All eight severity methods share the same signature:
@@ -172,7 +174,7 @@ When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](ht
     }
 ```
 
-Scope (if set) appears in parentheses before the event. Event (if set) appears in brackets before the message. Payload (if any) is printed on the next line with 4-space indentation.
+Scope (if set) appears in parentheses before the event. Event (if set) appears in brackets before the message. Payload (if any) is printed on the next line with 4-space indentation. In pretty mode, the timestamp is dimmed and `warning`/`error` and above are colored (yellow/red) for visibility.
 
 ### Environment variables
 
