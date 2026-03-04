@@ -131,7 +131,7 @@ log.info("new order placed", "order_created", { total: 49.99, items: 3 });
 | `ENVIRONMENT` | Attached as `labels.environment` on every entry |
 | `SERVICE` | Attached as `labels.service` on every entry |
 | `VERSION` | Attached as `labels.version` on every entry |
-| `LOGGER_CONSOLE_FORMAT` | Set to `"pretty"` for emoji + timestamp output locally |
+| `LOGGER_CONSOLE_FORMAT` | Defaults to pretty (emoji + timestamp). Set to `"plain"` to disable formatting |
 
 ---
 

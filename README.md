@@ -158,9 +158,7 @@ log.info("payment accepted", "charge_processed", { amount: 99.95, orderId: "o-44
 
 ### Console format
 
-By default, console logs are plain: `[(scope) ][[event] ]message[ {payload}]` without emoji or timestamp.
-
-When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](https://cloud.google.com/logging/docs/view/logs-explorer-interface) — severity as an emoji, a local timestamp, and the payload expanded below the message — so local development feels close to what you see when browsing entries in production. Console logs look like:
+By default, console logs are pretty — severity as an emoji, a local timestamp, and the payload expanded below the message — mimicking the [GCP Log Explorer](https://cloud.google.com/logging/docs/view/logs-explorer-interface) so local development feels close to what you see when browsing entries in production. Console logs look like:
 
 ```
 🔵 2026-02-26 13:04:22.120  server started
@@ -175,7 +173,7 @@ When `LOGGER_CONSOLE_FORMAT=pretty`, the output mimics the [GCP Log Explorer](ht
     }
 ```
 
-Scope (if set) appears in parentheses before the event. Event (if set) appears in brackets before the message. Payload (if any) is printed on the next line with 4-space indentation. In pretty mode, the timestamp is dimmed and `warning`/`error` and above are colored (yellow/red) for visibility.
+Scope (if set) appears in parentheses before the event. Event (if set) appears in brackets before the message. Payload (if any) is printed on the next line with 4-space indentation. The timestamp is dimmed and `warning`/`error` and above are colored (yellow/red) for visibility. Set `LOGGER_CONSOLE_FORMAT=plain` to disable all formatting and get bare `[(scope) ][[event] ]message[ {payload}]` lines.
 
 ### Environment variables
 
@@ -189,7 +187,7 @@ Scope (if set) appears in parentheses before the event. Event (if set) appears i
   Comma-separated list of backends to activate: `"gcp"`, `"console"`, or `"gcp,console"` for both simultaneously. When unset, GCP is used if `GCP_PROJECT` is set, otherwise console.
 
 - `LOGGER_CONSOLE_FORMAT`
-  Controls the console output format. When set to `"pretty"`, uses emoji + timestamp lines to emulate GCP's log viewer; otherwise (default) prints plain `message [payload]` without emoji or timestamp.
+  Controls the console output format. Defaults to pretty — emoji + timestamp lines that emulate GCP's log viewer. Set to `"plain"` to disable formatting and print bare `message [payload]` lines instead.
 
 - `ENVIRONMENT`
   Attached as `labels.environment` on every GCP entry. Useful for filtering by `"production"`, `"staging"`, etc.

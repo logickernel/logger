@@ -22,7 +22,7 @@ const targets = rawTargets
 
 const USE_GCP     = targets ? targets.has("gcp")    : !!process.env.GCP_PROJECT;
 const USE_CONSOLE = targets ? targets.has("console") : !process.env.GCP_PROJECT;
-const CONSOLE_PRETTY = process.env.LOGGER_CONSOLE_FORMAT?.toLowerCase() === "pretty";
+const CONSOLE_PRETTY = process.env.LOGGER_CONSOLE_FORMAT?.toLowerCase() !== "plain";
 const noop = (): void => {};
 
 const envLabels: Record<string, string> = {};
