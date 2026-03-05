@@ -84,7 +84,7 @@ describe("GCP backend integration", () => {
     const mod = await import("./index.js");
     const l = mod.logger();
     const testId = `it-json-${Date.now()}`;
-    l.info(`json payload smoke [${testId}]`, undefined, { requestId: "req-001", userId: "usr-42" });
+    l.info(`json payload smoke [${testId}]`, { requestId: "req-001", userId: "usr-42" });
     const entry = await pollForEntry(testId, "INFO");
     expect(entry, "no INFO entry arrived within timeout").toBeDefined();
     expect(typeof entry!.data).toBe("object");
@@ -162,15 +162,4 @@ describe("GCP backend integration — labels", () => {
     expect(entry!.metadata.labels?.scope, 'label "scope" missing or wrong').toBe("test-scope");
   }, 60_000);
 
-  it("merges scope and event labels", async () => {
-    vi.resetModules();
-    const mod = await import("./index.js");
-    const l = mod.logger("api");
-    const testId = `it-scope-event-${Date.now()}`;
-    l.info(`scope+event smoke [${testId}]`, "request_handled");
-    const entry = await pollForEntry(testId, "INFO");
-    expect(entry, "no INFO entry arrived within timeout").toBeDefined();
-    expect(entry!.metadata.labels?.scope).toBe("api");
-    expect(entry!.metadata.labels?.event).toBe("request_handled");
-  }, 60_000);
 });

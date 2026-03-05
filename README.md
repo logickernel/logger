@@ -8,8 +8,8 @@ import { logger } from "@logickernel/logger";
 const log = logger("api"); // optional scope label on every entry
 
 log.notice("server started");
-log.info("user authenticated", "user_login", { userId: "123" });
-log.warning("disk nearing capacity", "disk_space_low", { usedPct: 92, mount: "/data" });
+log.info("user authenticated", { userId: "123" });
+log.warning("disk nearing capacity", { usedPct: 92, mount: "/data" });
 ```
 
 > Your code never has to care whether it's running on Cloud Run / GCP or locally – the logger picks the right backend at startup.
@@ -32,7 +32,6 @@ log.warning("disk nearing capacity", "disk_space_low", { usedPct: 92, mount: "/d
 - **Full severity ladder**: `debug`, `info`, `notice`, `warning`, `error`, `critical`, `alert`, `emergency`.
 - **Structured context**: Pass a plain object as the third argument — it becomes a `jsonPayload` in GCP (queryable by field) and inline JSON in the console.
 - **Scope**: `logger("name")` attaches a `scope` label to every entry, great for filtering by component.
-- **Event**: Pass a string as the second argument to identify the event type as a low-cardinality GCP label.
 
 ---
 
@@ -61,16 +60,15 @@ log.warning("disk space low");
 When you need structured data or GCP metrics, add `event` and `payload` as opt-in extensions:
 
 ```ts
-// event identifies the type of occurrence (2nd arg)
-// payload carries measurements and context (3rd arg)
-log.info("user authenticated", "user_login", { userId: "123" });
-log.warning("disk nearing capacity", "disk_space_low", { usedPct: 92, mount: "/data" });
-log.error("upstream returned an error", "request_failed", { status: 503, ms: 1250 });
+// payload carries measurements and context (2nd arg)
+log.info("user authenticated", { userId: "123" });
+log.warning("disk nearing capacity", { usedPct: 92, mount: "/data" });
+log.error("upstream returned an error", { status: 503, ms: 1250 });
 
 // Scoped logger — attaches scope: "payments" to every entry as a GCP label
 const paymentsLog = logger("payments");
-paymentsLog.info("payment accepted", "charge_processed", { amount: 99.95 });
-paymentsLog.warning("card declined by issuing bank", "charge_failed", { code: "card_declined" });
+paymentsLog.info("payment accepted", { amount: 99.95 });
+paymentsLog.warning("card declined by issuing bank", { code: "card_declined" });
 ```
 
 `logger(scope?)` returns a `Logger` instance. Call it once per module or service boundary. The backend (GCP or console) is chosen once at module load:
@@ -85,13 +83,12 @@ If GCP is selected but the Cloud Logging client fails to initialize (e.g. missin
 All eight severity methods share the same signature:
 
 ```ts
-log.info(message: string, event?: string, payload?: Record<string, unknown>, labels?: Record<string, string>): void
+log.info(message: string, payload?: Record<string, unknown>, labels?: Record<string, string>): void
 ```
 
 - **`message`** — required string. Human-readable description of what happened.
-- **`event`** — optional snake_case identifier for the event type. Stored as `labels.event` in GCP; shown in brackets on the console.
 - **`payload`** — optional plain object. Becomes `jsonPayload` in GCP (fields indexed and queryable); inlined as compact JSON on the console.
-- **`labels`** — optional extra GCP labels merged on top of the instance labels. Per-call labels take precedence over env labels, scope, and event. Must be low-cardinality strings. Ignored by the console backend.
+- **`labels`** — optional extra GCP labels merged on top of the instance labels. Per-call labels take precedence over env labels and scope. Must be low-cardinality strings. Ignored by the console backend.
 
 ### Severity methods
 
@@ -112,49 +109,20 @@ log.info(message: string, event?: string, payload?: Record<string, unknown>, lab
 
 ```ts
 const db = logger("db");
-db.warning("database response took too long", "query_slow", { ms: 412, rows: 5200 });
-// GCP entry: labels = { scope: "db", event: "query_slow" }
+db.warning("database response took too long", { ms: 412, rows: 5200 });
+// GCP entry: labels = { scope: "db" }
 ```
 
 ### Structured context
 
-Pass a plain object as the third argument to attach structured data to a log entry:
+Pass a plain object as the second argument to attach structured data to a log entry:
 
 ```ts
-log.info("HTTP request completed", "request_complete", { status: 200, ms: 42 });
+log.info("HTTP request completed", { status: 200, ms: 42 });
 ```
 
 - **GCP backend**: written as `jsonPayload` — fields are indexed and queryable in Cloud Logging.
 - **Console backend**: inlined as spaced JSON on the same line.
-
-### Event
-
-Pass a `string` as the second argument to tag the entry with a machine-readable event identifier. It is stored as `labels.event` in GCP — a low-cardinality dimension like `scope`, `environment`, and `service`:
-
-```ts
-log.info("payment accepted", "charge_processed", { amount: 99.95, orderId: "o-4421" });
-// GCP entry: labels = { scope: "payments", event: "charge_processed", environment: "production" }
-```
-
-**Naming conventions:**
-
-- Use `snake_case` with underscore-separated words.
-- Use past tense for things that happened: `payment_charge_processed`, `user_login`, `query_timeout`.
-- Use noun form for conditions: `disk_space_low`, `cache_miss`.
-- Use scope for the component, event for the specific action within it — they're complementary:
-  ```ts
-  const log = logger("payments");
-  log.info("payment accepted", "charge_processed", { amount: 99.95 });
-  // labels: { scope: "payments", event: "charge_processed" }
-  ```
-- Keep events low-cardinality. Encode variable context (provider, region, method) in the event name or move it to payload:
-  ```ts
-  // Good — low-cardinality event, variable data in payload
-  log.info("payment accepted", "charge_processed", { amount: 99.95, provider: "stripe" });
-
-  // Also fine — provider encoded in event name
-  log.info("payment accepted", "stripe_charge_processed", { amount: 99.95 });
-  ```
 
 ### Console format
 
@@ -163,17 +131,17 @@ By default, console logs are pretty — severity as an emoji, a local timestamp,
 ```
 🔵 2026-02-26 13:04:22.120  server started
 🐞 2026-02-26 13:04:22.341  (api) cache miss
-🟡 2026-02-26 13:04:22.512  (payments) [charge_failed] card declined by issuing bank
+🟡 2026-02-26 13:04:22.512  (payments) card declined by issuing bank
     {
       "code": "card_declined"
     }
-⚪️ 2026-02-26 13:04:22.701  [user_login] user authenticated
+⚪️ 2026-02-26 13:04:22.701  user authenticated
     {
       "userId": "u-9182"
     }
 ```
 
-Scope (if set) appears in parentheses before the event. Event (if set) appears in brackets before the message. Payload (if any) is printed on the next line with 4-space indentation. The timestamp is dimmed and `warning`/`error` and above are colored (yellow/red) for visibility. Set `LOGGER_CONSOLE_FORMAT=plain` to disable all formatting and get bare `[(scope) ][[event] ]message[ {payload}]` lines.
+Scope (if set) appears in parentheses before the message. Payload (if any) is printed on the next line with 4-space indentation. The timestamp is dimmed and `warning`/`error` and above are colored (yellow/red) for visibility. Set `LOGGER_CONSOLE_FORMAT=plain` to disable all formatting and get bare `[(scope) ]message[ {payload}]` lines.
 
 ### Environment variables
 
@@ -233,36 +201,34 @@ The message is what you read when scanning a log stream — it should be self-ex
 
 Payload fields and event labels exist for querying and metrics — the message is for humans.
 
-### Payload carries values; event carries the type
+### Payload carries values; scope carries the component
 
-The three arguments serve distinct roles and should not be mixed:
+The arguments serve distinct roles and should not be mixed:
 
-| | `message` — 1st arg | `event` — 2nd arg | `payload` — 3rd arg |
+| | `message` — 1st arg | `payload` — 2nd arg | `labels` — 3rd arg |
 |---|---|---|---|
-| Type | `string` | `string` | `Record<string, unknown>` |
-| Purpose | Human description | Machine-readable event type | Measurements and context |
-| GCP storage | Entry message | `labels.event` | Indexed as `jsonPayload` fields |
-| Metrics use | Human readability | Low-cardinality dimension | Field values extracted into metric data points |
-| Cardinality | N/A | Must be low (bounded enum) | Can be high (IDs, URLs, counts) |
+| Type | `string` | `Record<string, unknown>` | `Record<string, string>` |
+| Purpose | Human description | Measurements and context | Per-call GCP label overrides |
+| GCP storage | Entry message | Indexed as `jsonPayload` fields | Merged into entry labels |
+| Metrics use | Human readability | Field values extracted into metric data points | Additional low-cardinality dimensions |
+| Cardinality | N/A | Can be high (IDs, URLs, counts) | Must be low |
 
 **Put measurements and context in payload — always as numbers, not strings:**
 
 ```ts
-log.info("HTTP request completed",           "request_handled", { ms: 42, status: 200, bytes: 1024 });
-log.info("served from cache",               "cache_hit",       { ttl: 300 });
-log.warning("database response took too long", "query_slow",   { ms: 850, rowsScanned: 12000 });
-log.info("batch run finished",              "batch_complete",  { processed: 142, failed: 3, durationMs: 5400 });
+log.info("HTTP request completed", { ms: 42, status: 200, bytes: 1024 });
+log.info("served from cache",      { ttl: 300 });
+log.warning("database response took too long", { ms: 850, rowsScanned: 12000 });
+log.info("batch run finished",     { processed: 142, failed: 3, durationMs: 5400 });
 ```
 
 Measurements must be numbers — `usedPct: 92`, not `used: "92%"`. Strings cannot be extracted as metric values in Cloud Monitoring.
 
-**Use event for the type; encode variable context in payload:**
-
 ```ts
 const log = logger("payments");
 
-log.info("payment accepted",            "charge_processed", { amount: 99.95, provider: "stripe" });
-log.warning("card declined by issuing bank", "charge_failed", { code: "card_declined", provider: "stripe" });
+log.info("payment accepted",             { amount: 99.95, provider: "stripe" });
+log.warning("card declined by issuing bank", { code: "card_declined", provider: "stripe" });
 ```
 
 ### Instantiate once per module or service boundary
@@ -274,12 +240,12 @@ Create the logger at module scope, not inside request handlers or loops. The fac
 const log = logger("orders");
 
 export async function createOrder(data: OrderData) {
-  log.info("new order placed", "order_created", { orderId: data.id, total: data.total });
+  log.info("new order placed", { orderId: data.id, total: data.total });
 }
 
 // Avoid — recreated on every call
 export async function createOrder(data: OrderData) {
-  logger("orders").info("order created", "order_created", { orderId: data.id, total: data.total });
+  logger("orders").info("new order placed", { orderId: data.id, total: data.total });
 }
 ```
 
@@ -295,7 +261,7 @@ Once entries flow into Cloud Logging you can create log-based metrics in a few s
    jsonPayload.ms > 0
    ```
 3. For a **distribution metric** (e.g. request latency), set the **field extractor** to `jsonPayload.ms`.
-4. Add **label extractors** for the dimensions you want to slice by, e.g. `labels.scope`, `labels.event`.
+4. Add **label extractors** for the dimensions you want to slice by, e.g. `labels.scope`.
 5. Chart the metric in **Cloud Monitoring** or attach an alerting policy (e.g. p99 latency > 500 ms).
 
 ---

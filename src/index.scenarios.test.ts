@@ -2,7 +2,7 @@
 // No assertions — run and inspect entries in Cloud Logging to build metrics and dashboards.
 //
 // All entries share: environment=production, service=api, version=1.0.0
-// Each scenario covers a different scope with a realistic event / payload distribution.
+// Each scenario covers a different scope with a realistic payload distribution.
 
 import { describe, it, vi, beforeAll, afterAll } from "vitest";
 import type { Logger } from "./index.js";
@@ -58,7 +58,7 @@ describe("scenarios — real-world log generation for dashboard review", () => {
 
   // ── scenario 1: HTTP API ───────────────────────────────────────────────────
   // Produces latency / status / error-rate data grouped by method and path.
-  // Useful for: request rate by event, p99 latency by path, error rate over time.
+  // Useful for: p99 latency by path, error rate over time, status code distribution.
 
   it("api: request handling — latency, status, and error rate", () => {
     const log: Logger = mod.logger("api");
@@ -82,11 +82,11 @@ describe("scenarios — real-world log generation for dashboard review", () => {
                    : status >= 400 ? rand(10, 150)
                    :                 rand(20, 480);
       if (severity === "info") {
-        log.info("request handled", "request_handled", { ms, status, method, path });
+        log.info("HTTP request completed", { ms, status, method, path });
       } else if (severity === "warning") {
-        log.warning("request rejected", "request_rejected", { ms, status, method, path });
+        log.warning("request not accepted", { ms, status, method, path });
       } else {
-        log.error("request failed", "request_failed", { ms, status, method, path });
+        log.error("upstream returned an error", { ms, status, method, path });
       }
     }
   });
@@ -118,11 +118,11 @@ describe("scenarios — real-world log generation for dashboard review", () => {
                      : outcome === "declined" ? rand(200, 900)
                      :                          rand(1_000, 4_000);
       if (outcome === "success") {
-        log.info("payment charge processed", "charge_processed", { ms, amount, currency, provider });
+        log.info("payment accepted", { ms, amount, currency, provider });
       } else if (outcome === "declined") {
-        log.warning("payment charge declined", "charge_declined", { ms, amount, currency, provider, code: pick(declineCodes) });
+        log.warning("card declined by issuing bank", { ms, amount, currency, provider, code: pick(declineCodes) });
       } else {
-        log.error("payment charge failed", "charge_failed", { ms, amount, currency, provider, code: pick(failureCodes) });
+        log.error("provider rejected the charge", { ms, amount, currency, provider, code: pick(failureCodes) });
       }
     }
   });
@@ -146,9 +146,9 @@ describe("scenarios — real-world log generation for dashboard review", () => {
       // Hits are sub-millisecond work; misses go to origin (db/api)
       const ms = result === "hit" ? rand(1, 6) : rand(35, 180);
       if (result === "hit") {
-        log.debug("cache hit", "cache_hit", { ms, store });
+        log.debug("served from cache", { ms, store });
       } else {
-        log.info("cache miss, fetched from origin", "cache_miss", { ms, store });
+        log.info("cache miss, fetched from origin", { ms, store });
       }
     }
   });
@@ -170,15 +170,15 @@ describe("scenarios — real-world log generation for dashboard review", () => {
       const rows      = operation === "select" ? rand(1, 500) : 1;
 
       if (ms > 100) {
-        log.warning("slow query detected", "query_slow", { ms, rows, table, operation });
+        log.warning("database response took too long", { ms, rows, table, operation });
       } else {
-        log.info("query executed", "query_executed", { ms, rows, table, operation });
+        log.info("database query returned", { ms, rows, table, operation });
       }
     }
 
-    // Inject a handful of timeouts to populate the error event
+    // Inject a handful of timeouts
     for (let i = 0; i < 3; i++) {
-      log.error("query timed out", "query_timeout", { ms: rand(5_000, 30_000), table: pick(tables), operation: "select" });
+      log.error("database connection timed out", { ms: rand(5_000, 30_000), table: pick(tables), operation: "select" });
     }
   });
 
@@ -206,19 +206,19 @@ describe("scenarios — real-world log generation for dashboard review", () => {
       const ms    = outcome === "ok" ? rand(50, 2_000) : rand(3_000, 12_000);
 
       if (outcome === "ok") {
-        log.info("job completed", "job_completed", { ms, queue, jobId });
+        log.info("background job finished", { ms, queue, jobId });
       } else {
         const reason = pick(failureReasons);
-        log.error("job failed", "job_failed", { ms, queue, jobId, reason });
+        log.error("background job could not complete", { ms, queue, jobId, reason });
 
         // Some failed jobs are retried
         if (Math.random() > 0.4) {
           const retryOutcome = pick(retryOutcomes);
           const retryMs      = rand(1_000, 6_000);
           if (retryOutcome === "success") {
-            log.info("job retry succeeded", "job_retry_succeeded", { ms: retryMs, queue, jobId });
+            log.info("retry attempt succeeded", { ms: retryMs, queue, jobId });
           } else {
-            log.error("job retry failed", "job_retry_failed", { ms: retryMs, queue, jobId, reason });
+            log.error("retry attempt also failed", { ms: retryMs, queue, jobId, reason });
           }
         }
       }

@@ -101,8 +101,8 @@ describe("logger (console backend)", () => {
 
   it("warning logs with 🟡 and timestamp (yellow message)", async () => {
     const log = await freshLogger();
-    log.warning("disk space low");
-    expect(console.log).toHaveBeenCalledWith(line("🟡", "disk space low", "yellow"));
+    log.warning("disk nearing capacity");
+    expect(console.log).toHaveBeenCalledWith(line("🟡", "disk nearing capacity", "yellow"));
   });
 
   it("error logs with 🔴 and timestamp (red message)", async () => {
@@ -131,41 +131,35 @@ describe("logger (console backend)", () => {
 
   it("debug shows payload on new indented line", async () => {
     const log = await freshLogger();
-    log.debug("user logged in", undefined, { userId: "123", action: "login" });
+    log.debug("user authenticated", { userId: "123", action: "login" });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('user logged in\n\x1b[38;5;66m    {\n      "userId": "123",\n      "action": "login"\n    }\x1b[0m')
+      expect.stringContaining('user authenticated\n\x1b[38;5;66m    {\n      "userId": "123",\n      "action": "login"\n    }\x1b[0m')
     );
   });
 
   it("info shows payload on new indented line", async () => {
     const log = await freshLogger();
-    log.info("request handled", undefined, { method: "GET", status: 200 });
+    log.info("HTTP request completed", { method: "GET", status: 200 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('request handled\n\x1b[38;5;66m    {\n      "method": "GET",\n      "status": 200\n    }\x1b[0m')
+      expect.stringContaining('HTTP request completed\n\x1b[38;5;66m    {\n      "method": "GET",\n      "status": 200\n    }\x1b[0m')
     );
   });
 
   it("error shows payload on new indented line", async () => {
     const log = await freshLogger();
-    log.error("request failed", undefined, { method: "POST", status: 500 });
+    log.error("upstream returned an error", { method: "POST", status: 500 });
     expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('\x1b[31mrequest failed\x1b[0m\n\x1b[38;5;66m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
+      expect.stringContaining('\x1b[31mupstream returned an error\x1b[0m\n\x1b[38;5;66m    {\n      "method": "POST",\n      "status": 500\n    }\x1b[0m')
     );
   });
 
-  it("shows event in brackets in pretty format", async () => {
-    const log = await freshLogger();
-    log.info("user logged in", "user_login");
-    expect(console.log).toHaveBeenCalledWith(line("⚪️", "[user_login] user logged in"));
-  });
-
-  it("shows scope and event in brackets in pretty format", async () => {
+  it("shows scope in pretty format", async () => {
     const log = await freshLogger("payments");
-    log.info("charge processed", "charge_processed");
-    expect(console.log).toHaveBeenCalledWith(line("⚪️", "(payments) [charge_processed] charge processed"));
+    log.info("payment accepted");
+    expect(console.log).toHaveBeenCalledWith(line("⚪️", "(payments) payment accepted"));
   });
 
-  it("defaults to plain format when LOGGER_CONSOLE_FORMAT is not set", async () => {
+  it("defaults to pretty format when LOGGER_CONSOLE_FORMAT is not set", async () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
@@ -173,34 +167,23 @@ describe("logger (console backend)", () => {
     });
     const log = await freshLogger();
     log.info("test message");
-    expect(console.log).toHaveBeenCalledWith("test message");
+    expect(console.log).toHaveBeenCalledWith(line("⚪️", "test message"));
   });
 
-  it("uses plain format when LOGGER_CONSOLE_FORMAT is not 'pretty'", async () => {
+  it("uses plain format when LOGGER_CONSOLE_FORMAT=plain", async () => {
     applyEnv({
       GCP_PROJECT: undefined,
       LOGGER_TARGET: "console",
       LOGGER_CONSOLE_FORMAT: "plain",
     });
     const log = await freshLogger();
-    log.info("test message", undefined, { key: "value" });
+    log.info("test message", { key: "value" });
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('test message { "key": "value" }')
     );
     expect(console.log).not.toHaveBeenCalledWith(
       expect.stringMatching(/^⚪️/)
     );
-  });
-
-  it("shows event in brackets in plain format", async () => {
-    applyEnv({
-      GCP_PROJECT: undefined,
-      LOGGER_TARGET: "console",
-      LOGGER_CONSOLE_FORMAT: "plain",
-    });
-    const log = await freshLogger();
-    log.info("user logged in", "user_login");
-    expect(console.log).toHaveBeenCalledWith("[user_login] user logged in");
   });
 });
 
@@ -224,7 +207,7 @@ describe("logger (multi-backend: gcp,console)", () => {
     applyEnv({
       GCP_PROJECT: "test-project",
       LOGGER_TARGET: "gcp,console",
-      LOGGER_CONSOLE_FORMAT: undefined,
+      LOGGER_CONSOLE_FORMAT: "plain",
       ENVIRONMENT: undefined,
       SERVICE: undefined,
       VERSION: undefined,
@@ -265,7 +248,7 @@ describe("logger (multi-backend: gcp,console)", () => {
   });
 });
 
-describe("logger (GCP backend) — event", () => {
+describe("logger (GCP backend)", () => {
   const originalEnv: Record<EnvKey, string | undefined> = snapshotEnv();
   let mockWrite: ReturnType<typeof vi.fn>;
   let mockEntry: ReturnType<typeof vi.fn>;
@@ -338,30 +321,22 @@ describe("logger (GCP backend) — event", () => {
     );
   });
 
-  it("attaches event label from event string argument", async () => {
-    const log = await freshLogger();
-    log.info("hello", "user_login");
-    expect(mockEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ labels: { event: "user_login" } }),
-      expect.anything(),
-    );
-  });
-
-  it("merges scope and event labels", async () => {
-    const log = await freshLogger("api");
-    log.info("hello", "request_handled");
-    expect(mockEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ labels: { scope: "api", event: "request_handled" } }),
-      expect.anything(),
-    );
-  });
-
-  it("merges env labels, scope, and event", async () => {
+  it("merges env labels and scope", async () => {
     process.env.ENVIRONMENT = "staging";
     const log = await freshLogger("worker");
-    log.info("hello", "job_completed");
+    log.info("hello");
     expect(mockEntry).toHaveBeenCalledWith(
-      expect.objectContaining({ labels: { environment: "staging", scope: "worker", event: "job_completed" } }),
+      expect.objectContaining({ labels: { environment: "staging", scope: "worker" } }),
+      expect.anything(),
+    );
+  });
+
+  it("per-call labels override instance labels", async () => {
+    process.env.ENVIRONMENT = "production";
+    const log = await freshLogger("api");
+    log.info("hello", undefined, { environment: "canary", region: "us-east1" });
+    expect(mockEntry).toHaveBeenCalledWith(
+      expect.objectContaining({ labels: { scope: "api", environment: "canary", region: "us-east1" } }),
       expect.anything(),
     );
   });
