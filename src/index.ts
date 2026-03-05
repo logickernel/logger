@@ -114,8 +114,8 @@ export function logger(scope?: string): Logger {
         notice:    (msg, p) => cw("🔵", undefined,   msg, p),
         warning:   (msg, p) => cw("🟡", ANSI_YELLOW, msg, p),
         error:     (msg, p) => cw("🔴", ANSI_RED,    msg, p),
-        critical:  (msg, p) => cw("⛔️", ANSI_RED,   msg, p),
-        alert:     (msg, p) => cw("❗️", ANSI_RED,   msg, p),
+        critical:  (msg, p) => cw("⛔️", ANSI_RED,    msg, p),
+        alert:     (msg, p) => cw("❗️", ANSI_RED,    msg, p),
         emergency: (msg, p) => cw("🚨", ANSI_RED,    msg, p),
       });
     } else {
