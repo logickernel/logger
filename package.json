@@ -1,6 +1,6 @@
 {
   "name": "@logickernel/logger",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Production-ready Node.js logger with intelligent backend routing and structured logging. Automatically detects GCP environments and routes logs to Google Cloud Logging with proper severities and queryable jsonPayload, or falls back to the local console for development.",
   "keywords": [
     "logger",
