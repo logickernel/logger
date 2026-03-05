@@ -55,7 +55,7 @@ log.info(message: string, payload?: Record<string, unknown>, labels?: Record<str
 
 ## Message naming
 
-Use a specific, past-tense phrase. The message must be readable in a log stream without opening the payload.
+Use a specific, past-tense phrase. The message must be readable in a log stream without opening the payload. **It must also be a stable string literal** — never interpolate values into the message. Dynamic messages create unbounded cardinality: every unique string becomes its own group in Cloud Logging, making entries impossible to filter, aggregate, or build metrics from. Put variable data in the payload instead.
 
 | Avoid | Use instead |
 |---|---|
@@ -78,8 +78,8 @@ When a payload is present, the logger writes it to GCP as `jsonPayload` with `me
 | Type | `string` | `Record<string, unknown>` | `Record<string, string>` |
 | Purpose | Human description | Measurements and context | Per-call GCP label overrides |
 | GCP storage | Entry message | `jsonPayload` fields — indexed, queryable by field | Merged into entry labels, wins over env/scope |
-| Cardinality | N/A | Can be high | **Must be low** |
-| Metric use | Human readability | Field values extracted as data points (e.g. latency, count) | Additional dimensions not known at instantiation time |
+| Cardinality | **Must be low** — use a stable literal, never interpolate | Can be high | **Must be low** |
+| Metric use | Groups entries for filtering and alerting | Field values extracted as data points (e.g. latency, count) | Additional dimensions not known at instantiation time |
 
 ### Put in payload
 - Numeric measurements: `ms`, `bytes`, `count`, `retries`, `rows`
@@ -140,6 +140,15 @@ log.info("payment accepted", { message: "it worked", amount: 99.95 }); // messag
 
 // ✗ Logging without structured data when measurements are available
 log.info("HTTP request completed"); // missed opportunity — add { ms, status } to payload
+
+// ✗ Dynamic message — explodes into unbounded unique strings, breaks filtering and metrics
+log.info(`request to ${req.path} took ${ms}ms`);        // path and ms → payload
+log.info("user " + userId + " logged in");               // userId → payload
+log.info(`retry attempt ${attempt} failed`);             // attempt → payload
+// ✓ Stable message + payload
+log.info("HTTP request completed", { path: req.path, ms });
+log.info("user authenticated", { userId });
+log.info("retry attempt failed", { attempt });
 ```
 
 ---

@@ -199,7 +199,19 @@ The message is what you read when scanning a log stream — it should be self-ex
 | `"user action"` | `"user login"`, `"password reset requested"` |
 | `"job done"` | `"invoice batch processed"`, `"report generated"` |
 
-Payload fields and event labels exist for querying and metrics — the message is for humans.
+**The message must be a stable string literal — never interpolate values into it.** Dynamic messages create unbounded cardinality: every unique string becomes its own group in Cloud Logging, making entries impossible to filter or aggregate. Put variable data in the payload instead:
+
+```ts
+// ✗ Dynamic message — each unique string is its own group; unfilter­able
+log.info(`request to ${req.path} took ${ms}ms`);
+log.info("user " + userId + " logged in");
+
+// ✓ Stable message + payload
+log.info("HTTP request completed", { path: req.path, ms });
+log.info("user authenticated", { userId });
+```
+
+Payload fields exist for querying and metrics — the message is for humans.
 
 ### Payload carries values; scope carries the component
 
@@ -211,7 +223,7 @@ The arguments serve distinct roles and should not be mixed:
 | Purpose | Human description | Measurements and context | Per-call GCP label overrides |
 | GCP storage | Entry message | Indexed as `jsonPayload` fields | Merged into entry labels |
 | Metrics use | Human readability | Field values extracted into metric data points | Additional low-cardinality dimensions |
-| Cardinality | N/A | Can be high (IDs, URLs, counts) | Must be low |
+| Cardinality | **Must be low** — stable literal, never interpolated | Can be high (IDs, URLs, counts) | Must be low |
 
 **Put measurements and context in payload — always as numbers, not strings:**
 
