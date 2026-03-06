@@ -1,3 +1,12 @@
+---
+name: logger
+description: >
+  Reference for writing code that uses @logickernel/logger. Load this skill whenever
+  the codebase imports from @logickernel/logger, or when asked to add, fix, or review
+  logging calls — to apply correct severity selection, structured payload conventions,
+  stable message strings, and label cardinality rules.
+---
+
 # Skill: @logickernel/logger
 
 Reference for agents writing code that uses [`@logickernel/logger`](https://www.npmjs.com/package/@logickernel/logger).
