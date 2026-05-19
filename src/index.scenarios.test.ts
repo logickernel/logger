@@ -35,9 +35,9 @@ describe("scenarios — real-world log generation for dashboard review", () => {
   let mod: typeof import("./index.js");
 
   beforeAll(async () => {
-    for (const k of ["GCP_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE", "VERSION"])
+    for (const k of ["GOOGLE_CLOUD_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE", "VERSION"])
       savedEnv[k] = process.env[k];
-    process.env.GCP_PROJECT   = PROJECT;
+    process.env.GOOGLE_CLOUD_PROJECT   = PROJECT;
     process.env.LOGGER_NAME   = LOG_NAME;
     process.env.LOGGER_TARGET = "gcp";
     process.env.ENVIRONMENT   = "production";

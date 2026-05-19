@@ -20,8 +20,8 @@ const targets = rawTargets
   ? new Set(rawTargets.toLowerCase().split(",").map(s => s.trim()).filter(Boolean))
   : null;
 
-const USE_GCP     = targets ? targets.has("gcp")    : !!process.env.GCP_PROJECT;
-const USE_CONSOLE = targets ? targets.has("console") : !process.env.GCP_PROJECT;
+const USE_GCP     = targets ? targets.has("gcp")    : !!process.env.GOOGLE_CLOUD_PROJECT;
+const USE_CONSOLE = targets ? targets.has("console") : !process.env.GOOGLE_CLOUD_PROJECT;
 const CONSOLE_PRETTY = process.env.LOGGER_CONSOLE_FORMAT?.toLowerCase() !== "plain";
 const noop = (): void => {};
 
@@ -34,7 +34,7 @@ if (process.env.VERSION)     envLabels.version      = process.env.VERSION;
 const gcpLog = USE_GCP ? (() => {
   try {
     const logName = process.env.LOGGER_NAME ?? process.env.K_SERVICE ?? "local";
-    return new Logging({ projectId: process.env.GCP_PROJECT }).log(logName);
+    return new Logging({ projectId: process.env.GOOGLE_CLOUD_PROJECT }).log(logName);
   } catch {
     return null;
   }

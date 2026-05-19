@@ -41,8 +41,8 @@ describe("GCP backend integration", () => {
   const savedEnv: Record<string, string | undefined> = {};
 
   beforeAll(() => {
-    for (const k of ["GCP_PROJECT", "LOGGER_NAME", "LOGGER_TARGET"]) savedEnv[k] = process.env[k];
-    process.env.GCP_PROJECT   = PROJECT;
+    for (const k of ["GOOGLE_CLOUD_PROJECT", "LOGGER_NAME", "LOGGER_TARGET"]) savedEnv[k] = process.env[k];
+    process.env.GOOGLE_CLOUD_PROJECT   = PROJECT;
     process.env.LOGGER_NAME   = LOG_NAME;
     process.env.LOGGER_TARGET = "gcp";
   });
@@ -101,9 +101,9 @@ describe("GCP backend integration — labels", () => {
   const savedEnv: Record<string, string | undefined> = {};
 
   beforeAll(() => {
-    for (const k of ["GCP_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE", "VERSION"])
+    for (const k of ["GOOGLE_CLOUD_PROJECT", "LOGGER_NAME", "LOGGER_TARGET", "ENVIRONMENT", "SERVICE", "VERSION"])
       savedEnv[k] = process.env[k];
-    process.env.GCP_PROJECT   = PROJECT;
+    process.env.GOOGLE_CLOUD_PROJECT   = PROJECT;
     process.env.LOGGER_NAME   = LOG_NAME;
     process.env.LOGGER_TARGET = "gcp";
   });

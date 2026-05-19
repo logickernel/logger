@@ -123,7 +123,7 @@ log.info("new order placed", { total: 49.99, items: 3 });
 | Variable | Effect |
 |---|---|
 | `LOGGER_NAME` | Log name in Cloud Logging (primary grouping). Falls back to `K_SERVICE`, then `"local"` |
-| `GCP_PROJECT` | Enables GCP backend when set |
+| `GOOGLE_CLOUD_PROJECT` | Enables GCP backend when set |
 | `LOGGER_TARGET` | Force backend: `"gcp"`, `"console"`, or `"gcp,console"` |
 | `ENVIRONMENT` | Attached as `labels.environment` on every entry |
 | `SERVICE` | Attached as `labels.service` on every entry |

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import type { Logger } from "./index.js";
 
-type EnvKey = "GCP_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE" | "VERSION";
-const ENV_KEYS: EnvKey[] = ["GCP_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE", "VERSION"];
+type EnvKey = "GOOGLE_CLOUD_PROJECT" | "LOGGER_TARGET" | "LOGGER_CONSOLE_FORMAT" | "ENVIRONMENT" | "SERVICE" | "VERSION";
+const ENV_KEYS: EnvKey[] = ["GOOGLE_CLOUD_PROJECT", "LOGGER_TARGET", "LOGGER_CONSOLE_FORMAT", "ENVIRONMENT", "SERVICE", "VERSION"];
 
 function snapshotEnv(): Record<EnvKey, string | undefined> {
   return {
-    GCP_PROJECT: process.env.GCP_PROJECT,
+    GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT,
     LOGGER_TARGET: process.env.LOGGER_TARGET,
     LOGGER_CONSOLE_FORMAT: process.env.LOGGER_CONSOLE_FORMAT,
     ENVIRONMENT: process.env.ENVIRONMENT,
@@ -47,7 +47,7 @@ describe("logger (console backend)", () => {
 
   beforeEach(() => {
     applyEnv({
-      GCP_PROJECT: undefined,
+      GOOGLE_CLOUD_PROJECT: undefined,
       LOGGER_TARGET: "console",
       LOGGER_CONSOLE_FORMAT: "pretty",
     });
@@ -161,7 +161,7 @@ describe("logger (console backend)", () => {
 
   it("defaults to pretty format when LOGGER_CONSOLE_FORMAT is not set", async () => {
     applyEnv({
-      GCP_PROJECT: undefined,
+      GOOGLE_CLOUD_PROJECT: undefined,
       LOGGER_TARGET: "console",
       LOGGER_CONSOLE_FORMAT: undefined,
     });
@@ -172,7 +172,7 @@ describe("logger (console backend)", () => {
 
   it("uses plain format when LOGGER_CONSOLE_FORMAT=plain", async () => {
     applyEnv({
-      GCP_PROJECT: undefined,
+      GOOGLE_CLOUD_PROJECT: undefined,
       LOGGER_TARGET: "console",
       LOGGER_CONSOLE_FORMAT: "plain",
     });
@@ -205,7 +205,7 @@ describe("logger (multi-backend: gcp,console)", () => {
       })),
     }));
     applyEnv({
-      GCP_PROJECT: "test-project",
+      GOOGLE_CLOUD_PROJECT: "test-project",
       LOGGER_TARGET: "gcp,console",
       LOGGER_CONSOLE_FORMAT: "plain",
       ENVIRONMENT: undefined,
@@ -266,7 +266,7 @@ describe("logger (GCP backend)", () => {
       })),
     }));
     applyEnv({
-      GCP_PROJECT: "test-project",
+      GOOGLE_CLOUD_PROJECT: "test-project",
       LOGGER_TARGET: undefined,
       LOGGER_CONSOLE_FORMAT: undefined,
       ENVIRONMENT: undefined,
